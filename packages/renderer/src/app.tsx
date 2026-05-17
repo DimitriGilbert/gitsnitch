@@ -1,6 +1,9 @@
-import { createHashHistory, createRootRoute, createRoute, createRouter, Outlet, RouterProvider } from "@tanstack/react-router";
+import { createHashHistory, createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet, RouterProvider } from "@tanstack/react-router";
 
-import { readInjectedReportData } from "./data";
+import { useReportData } from "./data";
+import { EmptyState } from "./empty-state";
+import { AppShell, StatsGrid } from "./layout";
+import { ThemeProvider } from "./theme";
 
 const rootRoute = createRootRoute({
   component: ReportShell,
@@ -14,8 +17,16 @@ const indexRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([indexRoute]);
 
+function createRouterHistory() {
+  if (typeof window === "undefined") {
+    return createMemoryHistory({ initialEntries: ["/"] });
+  }
+
+  return createHashHistory();
+}
+
 export const router = createRouter({
-  history: createHashHistory(),
+  history: createRouterHistory(),
   routeTree,
 });
 
@@ -26,46 +37,61 @@ declare module "@tanstack/react-router" {
 }
 
 function ReportShell() {
-  return <Outlet />;
+  return (
+    <ThemeProvider>
+      <Outlet />
+    </ThemeProvider>
+  );
 }
 
 function ReportHome() {
-  const state = readInjectedReportData();
+  const state = useReportData();
 
   if (state.status === "missing") {
     return (
-      <main className="min-h-screen bg-background p-8 text-foreground">
-        <section className="mx-auto max-w-3xl rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-          <h1 className="text-2xl font-semibold">git-snitch report template</h1>
-          <p className="mt-3 text-muted-foreground">
-            This standalone template is waiting for report data injection from the CLI build pipeline.
-          </p>
-        </section>
-      </main>
+      <AppShell title="git-snitch report template" description="A standalone renderer shell for CLI-generated git activity reports.">
+        <EmptyState
+          title="Report data has not been injected"
+          description="Build the report through the CLI pipeline so the standalone HTML receives a JSON-safe report payload."
+        />
+      </AppShell>
     );
   }
 
   if (state.status === "invalid") {
     return (
-      <main className="min-h-screen bg-background p-8 text-foreground">
-        <section className="mx-auto max-w-3xl rounded-lg border border-destructive bg-card p-6 text-card-foreground shadow-sm">
-          <h1 className="text-2xl font-semibold">Report data could not be loaded</h1>
-          <p className="mt-3 text-muted-foreground">{state.reason}</p>
-        </section>
-      </main>
+      <AppShell title="Report data could not be loaded" description="The injected payload failed the renderer contract checks.">
+        <EmptyState title="Invalid report data" description={state.reason} />
+      </AppShell>
     );
   }
 
+  const report = state.report;
+  const title = report.kind === "repo" ? report.repository.name : report.directory;
+  const stats =
+    report.kind === "repo"
+      ? [
+          { label: "Commits", value: report.commits.length, description: "Included in this report window" },
+          { label: "Contributors", value: report.contributors.length, description: "Identified by author identity" },
+          { label: "Files at risk", value: report.analysis.hotspots.length, description: "Hotspot candidates available for later routes" },
+          { label: "Languages", value: report.analysis.languages.length, description: "Detected from repository files" },
+        ]
+      : [
+          { label: "Projects", value: report.projects.length, description: "Repositories included in the scan" },
+          { label: "Commits", value: report.analysis.totalCommits, description: "Aggregate commits across projects" },
+          { label: "Contributors", value: report.analysis.totalContributors, description: "Aggregate contributor identities" },
+          { label: "Languages", value: report.analysis.languages.length, description: "Detected across scanned repositories" },
+        ];
+
   return (
-    <main className="min-h-screen bg-background p-8 text-foreground">
-      <section className="mx-auto max-w-3xl rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Standalone git activity report</p>
-        <h1 className="mt-3 text-3xl font-semibold">{state.report.kind === "repo" ? state.report.repository.name : state.report.directory}</h1>
-        <p className="mt-3 text-muted-foreground">
-          Renderer pipeline loaded a {state.report.kind} report generated at {state.report.generatedAt}.
-        </p>
-      </section>
-    </main>
+    <AppShell
+      title={title}
+      eyebrow="Standalone git activity report"
+      description={`Renderer pipeline loaded a ${report.kind} report generated at ${report.generatedAt}.`}
+      navigationItems={[{ label: "Overview", href: "#/", current: true }]}
+    >
+      <StatsGrid stats={stats} />
+    </AppShell>
   );
 }
 

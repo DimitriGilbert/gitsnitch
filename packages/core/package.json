@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./report-data": {
+      "types": "./src/report-data.ts",
+      "default": "./dist/report-data.js"
     }
   },
   "scripts": {
