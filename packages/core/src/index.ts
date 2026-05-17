@@ -7,6 +7,17 @@ export type { RepoReportOptions, ReportOptions, ScanOptions, ScanReportOptions }
 export type { RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "./report-data";
 export type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos";
 export type {
+  AsyncCommandRunner,
+  CommandResult,
+  CountLinesOfCodeOptions,
+  DiscoverRepositoriesOptions,
+  DiscoveredRepository,
+  GitLogOptions,
+  LineCountByLanguage,
+  LineCountResult,
+  LineCountSkippedFile,
+} from "./git/types";
+export type {
   RepoTemplateContext,
   RepoTemplateRouteId,
   ScanProjectTemplateContext,
@@ -27,3 +38,8 @@ export {
   scanReportOptionsSchema,
 } from "./options";
 export { isRepoReportData, isScanReportData, reportDataDiscriminantSchema, reportKindSchema } from "./report-data";
+export { discoverGitRepositories } from "./git/discovery";
+export { buildGitLogArgs, getGitCommits } from "./git/log";
+export { countLinesOfCode } from "./git/loc";
+export { getCommitBranches, getCurrentBranch, getRepositoryInfo, normalizeRemoteUrl } from "./git/repository";
+export { createGitCommandRunner } from "./git/runner";
