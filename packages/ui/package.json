@@ -11,6 +11,8 @@
     "./postcss.config": "./postcss.config.mjs"
   },
   "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

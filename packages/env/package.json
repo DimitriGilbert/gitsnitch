@@ -6,6 +6,11 @@
   "exports": {
     "./web": "./src/web.ts"
   },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check-types": "tsc --noEmit"
+  },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.1",
     "dotenv": "catalog:",

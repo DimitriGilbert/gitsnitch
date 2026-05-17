@@ -9,7 +9,10 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "typecheck": "turbo typecheck",
     "check-types": "turbo check-types",
+    "test": "turbo test",
+    "lint": "turbo lint",
     "dev:web": "turbo -F web dev"
   },
   "dependencies": {
@@ -19,8 +22,10 @@
   },
   "devDependencies": {
     "@git-snitch/config": "workspace:*",
+    "@types/node": "catalog:",
     "turbo": "^2.8.12",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "packageManager": "pnpm@10.10.0"
 }

@@ -1,6 +1,10 @@
 # git-snitch
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, and more.
+git-snitch is a pnpm/Turborepo monorepo created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack). It contains the v1 package scaffolding for a TypeScript CLI that generates standalone git activity reports, plus a TanStack Start marketing site.
+
+## Package Manager
+
+Use `pnpm` from the repository root. Do not use npm, yarn, bun, or parent-repository lockfiles for this workspace.
 
 ## Features
 
@@ -18,13 +22,23 @@ First, install the dependencies:
 pnpm install
 ```
 
-Then, run the development server:
+Then, run the marketing site during local development when needed:
 
 ```bash
-pnpm run dev
+pnpm run dev:web
 ```
 
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
+
+## Available Scripts
+
+- `pnpm run build`: Build all workspace packages and apps that define a build task.
+- `pnpm run typecheck`: Type-check all workspace packages and apps that define a typecheck task.
+- `pnpm run check-types`: Better-T-Stack-compatible alias for workspace type checks.
+- `pnpm run test`: Run all workspace tests that define a test task.
+- `pnpm run lint`: Run workspace lint tasks when package-level lint scripts are present.
+- `pnpm run dev`: Start all development tasks.
+- `pnpm run dev:web`: Start only the TanStack Start marketing site.
 
 ## UI Customization
 
@@ -57,14 +71,20 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 ```
 git-snitch/
 ├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
+│   ├── cli/         # CLI command entrypoint package
+│   └── web/         # Marketing site (React + TanStack Start)
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
+│   ├── config/      # Shared TypeScript configuration
+│   ├── core/        # Git data, config, analysis, and report generation package
+│   ├── env/         # Shared environment validation helpers
+│   ├── renderer/    # Standalone report renderer package
+│   └── ui/          # Shared shadcn/ui components and styles
 ```
 
-## Available Scripts
+## Phase 1 Package Roles
 
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:web`: Start only the web application
-- `pnpm run check-types`: Check TypeScript types across all apps
+- `apps/cli` owns the future `git-snitch` command entrypoint. Phase 1 only exposes package metadata so the package has a real public contract to build and test.
+- `apps/web` remains the generated Better-T-Stack TanStack Start app and serves as the required marketing site.
+- `packages/core` owns future git data gathering, config loading, analysis, and report generation APIs. Phase 1 only exposes package metadata.
+- `packages/renderer` owns future standalone report rendering and template build APIs. Phase 1 only exposes package metadata.
+- `packages/ui` remains the only source of truth for shared shadcn/ui primitives.
