@@ -2,8 +2,6 @@ import { Toaster } from "@git-snitch/ui/components/sonner";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-import Header from "../components/header";
-
 import appCss from "../index.css?url";
 
 export interface RouterAppContext {}
@@ -19,7 +17,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "My App",
+        title: "git-snitch - Standalone git activity reports",
+      },
+      {
+        name: "description",
+        content:
+          "Generate standalone HTML reports for git repositories and repository scans with the git-snitch npm CLI.",
       },
     ],
     links: [
@@ -40,8 +43,7 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body>
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Header />
+        <div className="min-h-svh">
           <Outlet />
         </div>
         <Toaster richColors />
