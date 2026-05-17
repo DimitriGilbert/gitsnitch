@@ -1,8 +1,22 @@
-import { createHashHistory, createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet, RouterProvider } from "@tanstack/react-router";
+import {
+  createHashHistory,
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+  useRouterState,
+} from "@tanstack/react-router";
 
 import { useReportData } from "./data";
 import { EmptyState } from "./empty-state";
 import { AppShell, StatsGrid } from "./layout";
+import { ChartsRoute } from "./charts-route";
+import { RepoOverview } from "./overview";
+import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes";
+import { CommitsRoute, ContributorsRoute } from "./repo-routes";
 import { ThemeProvider } from "./theme";
 
 const rootRoute = createRootRoute({
@@ -12,10 +26,46 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: ReportHome,
+  component: IndexRoute,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute]);
+const overviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/overview",
+  component: OverviewRoute,
+});
+
+const commitsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/commits",
+  component: CommitsRouteContainer,
+});
+
+const contributorsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/contributors",
+  component: ContributorsRouteContainer,
+});
+
+const chartsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/charts",
+  component: ChartsRouteContainer,
+});
+
+const qualityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/quality",
+  component: QualityRouteContainer,
+});
+
+const hotspotsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/hotspots",
+  component: HotspotsRouteContainer,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, overviewRoute, commitsRoute, contributorsRoute, chartsRoute, qualityRoute, hotspotsRoute]);
 
 function createRouterHistory() {
   if (typeof window === "undefined") {
@@ -39,13 +89,27 @@ declare module "@tanstack/react-router" {
 function ReportShell() {
   return (
     <ThemeProvider>
-      <Outlet />
+      <ReportRootLayout />
     </ThemeProvider>
   );
 }
 
-function ReportHome() {
+function IndexRoute() {
+  return <Navigate to="/overview" replace />;
+}
+
+const repoNavigationItems = [
+  { label: "Overview", href: "#/overview", path: "/overview", disabled: false },
+  { label: "Commits", href: "#/commits", path: "/commits", disabled: false },
+  { label: "Contributors", href: "#/contributors", path: "/contributors", disabled: false },
+  { label: "Charts", href: "#/charts", path: "/charts", disabled: false },
+  { label: "Quality", href: "#/quality", path: "/quality", disabled: false },
+  { label: "Hotspots", href: "#/hotspots", path: "/hotspots", disabled: false },
+] as const;
+
+function ReportRootLayout() {
   const state = useReportData();
+  const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
 
   if (state.status === "missing") {
     return (
@@ -68,31 +132,83 @@ function ReportHome() {
 
   const report = state.report;
   const title = report.kind === "repo" ? report.repository.name : report.directory;
-  const stats =
-    report.kind === "repo"
-      ? [
-          { label: "Commits", value: report.commits.length, description: "Included in this report window" },
-          { label: "Contributors", value: report.contributors.length, description: "Identified by author identity" },
-          { label: "Files at risk", value: report.analysis.hotspots.length, description: "Hotspot candidates available for later routes" },
-          { label: "Languages", value: report.analysis.languages.length, description: "Detected from repository files" },
-        ]
-      : [
-          { label: "Projects", value: report.projects.length, description: "Repositories included in the scan" },
-          { label: "Commits", value: report.analysis.totalCommits, description: "Aggregate commits across projects" },
-          { label: "Contributors", value: report.analysis.totalContributors, description: "Aggregate contributor identities" },
-          { label: "Languages", value: report.analysis.languages.length, description: "Detected across scanned repositories" },
-        ];
+  const navigationItems = repoNavigationItems.map((item) => ({
+    label: item.label,
+    href: item.href,
+    current: item.path === pathname,
+    disabled: item.disabled,
+  }));
 
   return (
     <AppShell
       title={title}
       eyebrow="Standalone git activity report"
       description={`Renderer pipeline loaded a ${report.kind} report generated at ${report.generatedAt}.`}
-      navigationItems={[{ label: "Overview", href: "#/", current: true }]}
+      navigationItems={navigationItems}
     >
-      <StatsGrid stats={stats} />
+      <Outlet />
     </AppShell>
   );
+}
+
+function OverviewRoute() {
+  const state = useReportData();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <RepoOverview report={state.report} />;
+}
+
+function CommitsRouteContainer() {
+  const state = useReportData();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <CommitsRoute report={state.report} />;
+}
+
+function ContributorsRouteContainer() {
+  const state = useReportData();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <ContributorsRoute report={state.report} />;
+}
+
+function ChartsRouteContainer() {
+  const state = useReportData();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <ChartsRoute report={state.report} />;
+}
+
+function QualityRouteContainer() {
+  const state = useReportData();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <QualityRoute report={state.report} />;
+}
+
+function HotspotsRouteContainer() {
+  const state = useReportData();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <HotspotsRoute report={state.report} />;
 }
 
 export function App() {
