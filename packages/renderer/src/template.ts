@@ -4,8 +4,9 @@ import type {
   ScanTemplateContext,
   TemplateRouteId,
 } from "@git-snitch/core";
+import type { ReactNode } from "react";
 
-export type TemplateComponent<Props> = (props: Props) => unknown;
+export type TemplateComponent<Props> = (props: Props) => ReactNode;
 
 export interface RouteTemplatePropsById {
   readonly overview: RepoTemplateContext;

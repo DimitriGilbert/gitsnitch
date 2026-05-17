@@ -14,17 +14,26 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && vite build",
     "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "@git-snitch/core": "workspace:*"
+    "@git-snitch/core": "workspace:*",
+    "@git-snitch/ui": "workspace:*",
+    "@tanstack/react-router": "^1.168.22",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@git-snitch/config": "workspace:*",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^6.0.1",
     "typescript": "catalog:",
+    "vite": "^8.0.8",
     "vitest": "catalog:"
   }
 }
