@@ -37,7 +37,7 @@ function repoDataMismatch() {
   return (
     <EmptyState
       title="Charts are unavailable for scan reports"
-      description="This route expects a single-repository report. Open a scan route for multi-repository data once scan report routes are available."
+      description="This route expects a single-repository report. Open the scan overview for multi-repository aggregate evidence."
     />
   );
 }

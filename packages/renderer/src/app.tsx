@@ -17,6 +17,7 @@ import { ChartsRoute } from "./charts-route";
 import { RepoOverview } from "./overview";
 import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes";
 import { CommitsRoute, ContributorsRoute } from "./repo-routes";
+import { ScanOverview, ScanProjectRoute, deriveScanProjectRouteEntries } from "./scan-routes";
 import { ThemeProvider } from "./theme";
 
 const rootRoute = createRootRoute({
@@ -65,7 +66,29 @@ const hotspotsRoute = createRoute({
   component: HotspotsRouteContainer,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, overviewRoute, commitsRoute, contributorsRoute, chartsRoute, qualityRoute, hotspotsRoute]);
+const scanOverviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/scan",
+  component: ScanOverviewRouteContainer,
+});
+
+const scanProjectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/scan/projects/$projectSlug",
+  component: ScanProjectRouteContainer,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  overviewRoute,
+  commitsRoute,
+  contributorsRoute,
+  chartsRoute,
+  qualityRoute,
+  hotspotsRoute,
+  scanOverviewRoute,
+  scanProjectRoute,
+]);
 
 function createRouterHistory() {
   if (typeof window === "undefined") {
@@ -95,7 +118,8 @@ function ReportShell() {
 }
 
 function IndexRoute() {
-  return <Navigate to="/overview" replace />;
+  const state = useReportData();
+  return <Navigate to={state.status === "ready" && state.report.kind === "scan" ? "/scan" : "/overview"} replace />;
 }
 
 const repoNavigationItems = [
@@ -132,12 +156,28 @@ function ReportRootLayout() {
 
   const report = state.report;
   const title = report.kind === "repo" ? report.repository.name : report.directory;
-  const navigationItems = repoNavigationItems.map((item) => ({
-    label: item.label,
-    href: item.href,
-    current: item.path === pathname,
-    disabled: item.disabled,
-  }));
+  const scanNavigationItems = report.kind === "scan"
+    ? [
+        { label: "Scan Overview", href: "#/scan", current: pathname === "/scan", disabled: false },
+        ...deriveScanProjectRouteEntries(report).map((entry) => ({
+          label: entry.label,
+          href: entry.href,
+          current: pathname === `/scan/projects/${entry.slug}`,
+          disabled: false,
+        })),
+      ]
+    : [{ label: "Scan Overview", href: "#/scan", current: pathname === "/scan", disabled: false }];
+  const navigationItems = report.kind === "scan"
+    ? scanNavigationItems
+    : [
+        ...repoNavigationItems.map((item) => ({
+          label: item.label,
+          href: item.href,
+          current: item.path === pathname,
+          disabled: item.disabled,
+        })),
+        ...scanNavigationItems,
+      ];
 
   return (
     <AppShell
@@ -209,6 +249,27 @@ function HotspotsRouteContainer() {
   }
 
   return <HotspotsRoute report={state.report} />;
+}
+
+function ScanOverviewRouteContainer() {
+  const state = useReportData();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <ScanOverview report={state.report} />;
+}
+
+function ScanProjectRouteContainer() {
+  const state = useReportData();
+  const params = scanProjectRoute.useParams();
+
+  if (state.status !== "ready") {
+    return <StatsGrid stats={[]} />;
+  }
+
+  return <ScanProjectRoute report={state.report} projectSlug={params.projectSlug} />;
 }
 
 export function App() {

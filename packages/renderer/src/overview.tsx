@@ -165,7 +165,7 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
     return (
       <EmptyState
         title="Repo overview is unavailable for scan reports"
-        description="This route expects a single-repository report. Open the scan overview once scan routes are available."
+        description="This route expects a single-repository report. Open the scan overview for multi-repository aggregate evidence."
       />
     );
   }
