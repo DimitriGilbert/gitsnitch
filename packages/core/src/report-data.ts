@@ -113,7 +113,23 @@ const commitRecordSchema: z.ZodType<CommitRecord> = z.object({
   committedAt: isoDateStringSchema,
   parents: z.array(z.string()),
   refs: z.array(z.string()),
-  classification: z.enum(["feature", "fix", "docs", "refactor", "test", "chore", "other"]),
+  classification: z.enum([
+    "feature",
+    "fix",
+    "bugfix",
+    "docs",
+    "refactor",
+    "test",
+    "chore",
+    "style",
+    "perf",
+    "ci",
+    "build",
+    "revert",
+    "merge",
+    "release",
+    "other",
+  ]),
   files: z.array(commitFileChangeSchema),
 });
 
@@ -148,8 +164,18 @@ const repositoryAnalysisSchema: z.ZodType<RepositoryAnalysis> = z.object({
     z.object({
       path: z.string(),
       changeCount: z.number().int().nonnegative(),
+      additions: z.number().int().nonnegative(),
+      deletions: z.number().int().nonnegative(),
       contributorCount: z.number().int().nonnegative(),
+      contributors: z.array(z.string()),
       churn: z.number().int().nonnegative(),
+      lastChangedAt: isoDateStringSchema,
+      hotspotScore: z.number().int().nonnegative(),
+      riskLevel: z.object({
+        level: z.enum(["low", "medium", "high"]),
+        color: z.string(),
+        emoji: z.string(),
+      }),
     }),
   ),
   cadence: z.array(

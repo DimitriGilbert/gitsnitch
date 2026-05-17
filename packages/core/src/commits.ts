@@ -1,6 +1,21 @@
 import type { IsoDateString } from "./json";
 
-export type CommitClassification = "feature" | "fix" | "docs" | "refactor" | "test" | "chore" | "other";
+export type CommitClassification =
+  | "feature"
+  | "fix"
+  | "bugfix"
+  | "docs"
+  | "refactor"
+  | "test"
+  | "chore"
+  | "style"
+  | "perf"
+  | "ci"
+  | "build"
+  | "revert"
+  | "merge"
+  | "release"
+  | "other";
 
 export interface CommitAuthor {
   readonly name: string;
