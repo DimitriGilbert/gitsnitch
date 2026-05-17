@@ -47,6 +47,11 @@ export interface ScanReportOptions extends ReportOptions {
   readonly scan: ScanOptions;
 }
 
+export interface ScanPeriodOptions {
+  readonly period?: string;
+  readonly now?: IsoDateString;
+}
+
 export const isoDateStringSchema = z.string().refine(
   (value) => {
     const parsed = new Date(value);
@@ -72,6 +77,11 @@ const reportOptionsSchema = z.object({
   since: isoDateStringSchema.optional(),
   until: isoDateStringSchema.optional(),
   templatePath: z.string().min(1).optional(),
+});
+
+export const scanPeriodOptionsSchema = z.object({
+  period: z.string().min(1).optional(),
+  now: isoDateStringSchema.optional(),
 });
 
 export const repoReportOptionsObjectSchema = reportOptionsSchema.extend({

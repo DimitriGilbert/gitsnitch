@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { z } from "zod";
 
 import {
@@ -37,3 +40,100 @@ export const gitSnitchConfigSchema = z
   .default({ repo: {}, scan: defaultScanConfig, report: defaultReportConfig });
 
 export type GitSnitchConfig = z.infer<typeof gitSnitchConfigSchema>;
+
+export interface GitSnitchConfigOverrides {
+  readonly repo?: Partial<GitSnitchConfig["repo"]>;
+  readonly scan?: Partial<GitSnitchConfig["scan"]>;
+  readonly report?: Partial<GitSnitchConfig["report"]>;
+}
+
+export class GitSnitchConfigError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "GitSnitchConfigError";
+  }
+}
+
+export async function loadGitSnitchConfig(baseDir: string): Promise<GitSnitchConfig> {
+  const configPath = join(baseDir, ".git-snitch", "config.json");
+  let raw: string;
+
+  try {
+    raw = await readFile(configPath, "utf8");
+  } catch (error) {
+    if (isNodeErrorWithCode(error, "ENOENT")) {
+      return getDefaultGitSnitchConfig();
+    }
+    throw new GitSnitchConfigError(`Unable to read ${configPath}: ${errorMessage(error)}`);
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(raw);
+  } catch (error) {
+    throw new GitSnitchConfigError(`Invalid JSON in ${configPath}: ${errorMessage(error)}`);
+  }
+
+  const parsed = gitSnitchConfigSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new GitSnitchConfigError(`Invalid git-snitch config at ${configPath}: ${formatZodError(parsed.error)}`);
+  }
+
+  return parsed.data;
+}
+
+export function getDefaultGitSnitchConfig(): GitSnitchConfig {
+  return gitSnitchConfigSchema.parse({});
+}
+
+export function mergeGitSnitchConfig(
+  base: GitSnitchConfig = getDefaultGitSnitchConfig(),
+  overrides: GitSnitchConfigOverrides = {},
+): GitSnitchConfig {
+  const merged = {
+    repo: {
+      ...base.repo,
+      ...definedObject(overrides.repo),
+    },
+    scan: {
+      ...base.scan,
+      ...definedObject(overrides.scan),
+      excludePatterns: mergePatternAdditions(base.scan.excludePatterns, overrides.scan?.excludePatterns),
+      includePatterns: overrides.scan?.includePatterns ?? base.scan.includePatterns,
+    },
+    report: {
+      ...base.report,
+      ...definedObject(overrides.report),
+    },
+  };
+
+  const parsed = gitSnitchConfigSchema.safeParse(merged);
+  if (!parsed.success) {
+    throw new GitSnitchConfigError(`Invalid git-snitch config overrides: ${formatZodError(parsed.error)}`);
+  }
+
+  return parsed.data;
+}
+
+function mergePatternAdditions(base: readonly string[], additions: readonly string[] | undefined): readonly string[] {
+  if (additions === undefined) {
+    return base;
+  }
+  return [...new Set([...base, ...additions])];
+}
+
+function definedObject<T extends object>(value: T | undefined): T | Record<string, never> {
+  return value ?? {};
+}
+
+function formatZodError(error: z.ZodError): string {
+  return error.issues.map((issue) => `${issue.path.join(".") || "config"}: ${issue.message}`).join("; ");
+}
+
+function isNodeErrorWithCode(error: unknown, code: string): boolean {
+  return error instanceof Error && Object.getOwnPropertyDescriptor(error, "code")?.value === code;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
+}

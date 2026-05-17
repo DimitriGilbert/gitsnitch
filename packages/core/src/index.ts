@@ -32,10 +32,11 @@ export type {
 } from "./analysis";
 export type { CommitMessageQuality, CommitTypeBreakdown } from "./commit-classifier";
 export type { CommitAuthor, CommitClassification, CommitFileChange, CommitRecord } from "./commits";
-export type { GitSnitchConfig } from "./config";
+export type { GitSnitchConfig, GitSnitchConfigOverrides } from "./config";
 export type { ContributorIdentity, ContributorSummary } from "./contributors";
 export type { IsoDateString, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./json";
-export type { RepoReportOptions, ReportOptions, ScanOptions, ScanReportOptions } from "./options";
+export type { RepoReportOptions, ReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions } from "./options";
+export type { GenerateScanReportOptions, ReportGenerationDependencies } from "./report";
 export type { RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "./report-data";
 export type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos";
 export type {
@@ -59,16 +60,24 @@ export type {
   TemplateRouteId,
 } from "./templates";
 
-export { gitSnitchConfigSchema } from "./config";
+export {
+  GitSnitchConfigError,
+  getDefaultGitSnitchConfig,
+  gitSnitchConfigSchema,
+  loadGitSnitchConfig,
+  mergeGitSnitchConfig,
+} from "./config";
 export {
   DEFAULT_SCAN_EXCLUDE_PATTERNS,
   DEFAULT_SCAN_INCLUDE_PATTERNS,
   DEFAULT_SCAN_MAX_DEPTH,
   isoDateStringSchema,
   repoReportOptionsSchema,
+  scanPeriodOptionsSchema,
   scanOptionsSchema,
   scanReportOptionsSchema,
 } from "./options";
+export { generateRepoReport, generateScanReport, GitSnitchReportError, parseScanPeriod } from "./report";
 export { isRepoReportData, isScanReportData, reportDataDiscriminantSchema, reportKindSchema } from "./report-data";
 export { analyzeCommitMessageQuality, classifyCommit, generateCommitTypeBreakdown } from "./commit-classifier";
 export { discoverGitRepositories } from "./git/discovery";

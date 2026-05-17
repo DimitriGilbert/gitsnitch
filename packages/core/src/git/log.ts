@@ -146,18 +146,32 @@ function parseHeader(line: string): ParsedHeader | undefined {
     return undefined;
   }
 
+  const normalizedAuthoredAt = normalizeGitIsoDate(authoredAt);
+  const normalizedCommittedAt = normalizeGitIsoDate(committedAt);
+  if (!normalizedAuthoredAt || !normalizedCommittedAt) {
+    return undefined;
+  }
+
   return {
     hash,
     shortHash,
     authorName,
     authorEmail,
-    authoredAt,
-    committedAt,
+    authoredAt: normalizedAuthoredAt,
+    committedAt: normalizedCommittedAt,
     parents: parents ? parents.split(" ").filter(Boolean) : [],
     refs: refs ? refs.split(", ").filter(Boolean) : [],
     subject,
     ...(body && body.trim().length > 0 ? { body: body.trim() } : {}),
   };
+}
+
+function normalizeGitIsoDate(value: string): string | undefined {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+  return date.toISOString();
 }
 
 function parseFileChange(line: string): CommitFileChange | undefined {
