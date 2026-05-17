@@ -5,8 +5,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./template": {
+      "types": "./src/template.ts",
+      "default": "./dist/template.js"
     }
   },
   "scripts": {
@@ -14,6 +18,9 @@
     "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@git-snitch/core": "workspace:*"
   },
   "devDependencies": {
     "@git-snitch/config": "workspace:*",

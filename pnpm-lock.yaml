@@ -152,6 +152,10 @@ importers:
   packages/config: {}
 
   packages/core:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
     devDependencies:
       '@git-snitch/config':
         specifier: workspace:*
@@ -183,6 +187,10 @@ importers:
         version: 6.0.3
 
   packages/renderer:
+    dependencies:
+      '@git-snitch/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@git-snitch/config':
         specifier: workspace:*
