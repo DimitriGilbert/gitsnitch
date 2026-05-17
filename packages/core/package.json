@@ -1,7 +1,9 @@
 {
   "name": "@git-snitch/core",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -13,6 +15,11 @@
       "default": "./dist/report-data.js"
     }
   },
+  "files": [
+    "dist",
+    "src",
+    "package.json"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",

@@ -93,17 +93,17 @@ export function mergeGitSnitchConfig(
   const merged = {
     repo: {
       ...base.repo,
-      ...definedObject(overrides.repo),
+      ...definedProperties(overrides.repo),
     },
     scan: {
       ...base.scan,
-      ...definedObject(overrides.scan),
+      ...definedProperties(overrides.scan),
       excludePatterns: mergePatternAdditions(base.scan.excludePatterns, overrides.scan?.excludePatterns),
       includePatterns: overrides.scan?.includePatterns ?? base.scan.includePatterns,
     },
     report: {
       ...base.report,
-      ...definedObject(overrides.report),
+      ...definedProperties(overrides.report),
     },
   };
 
@@ -122,8 +122,19 @@ function mergePatternAdditions(base: readonly string[], additions: readonly stri
   return [...new Set([...base, ...additions])];
 }
 
-function definedObject<T extends object>(value: T | undefined): T | Record<string, never> {
-  return value ?? {};
+function definedProperties<T extends object>(value: T | undefined): Partial<T> {
+  if (value === undefined) {
+    return {};
+  }
+
+  const result: Partial<T> = {};
+  for (const key of Object.keys(value) as (keyof T)[]) {
+    const propertyValue = value[key];
+    if (propertyValue !== undefined) {
+      result[key] = propertyValue;
+    }
+  }
+  return result;
 }
 
 function formatZodError(error: z.ZodError): string {

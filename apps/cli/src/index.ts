@@ -88,7 +88,7 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--branch <ref>", "Branch or ref to include", collectValues, [])
     .option("--all-branches", "Include local and remote refs")
     .action(async (repoPath: string, options: RepoCommandOptions, command: Command) => {
-      await runRepoCommand(repoPath, normalizeOverwriteOption(options, command), { io, opener });
+      await runRepoCommand(repoPath, normalizeRepoCommandOptions(options, command), { io, opener });
     });
 
   program
@@ -269,6 +269,15 @@ function normalizeOverwriteOption<Options extends SharedCommandOptions>(options:
   }
 
   return { ...options, overwrite: undefined };
+}
+
+function normalizeRepoCommandOptions(options: RepoCommandOptions, command: Command): RepoCommandOptions {
+  const normalized = normalizeOverwriteOption(options, command);
+  if (command.getOptionValueSource("branch") === "cli") {
+    return normalized;
+  }
+
+  return { ...normalized, branch: undefined };
 }
 
 async function openFile(filePath: string): Promise<void> {

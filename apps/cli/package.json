@@ -1,7 +1,9 @@
 {
   "name": "@git-snitch/cli",
   "version": "0.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -12,11 +14,15 @@
   "bin": {
     "git-snitch": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "package.json"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit",
-    "test": "pnpm --filter @git-snitch/renderer build && vitest run"
+    "test": "pnpm --filter @git-snitch/core build && pnpm --filter @git-snitch/renderer build && vitest run"
   },
   "dependencies": {
     "@git-snitch/core": "workspace:*",
