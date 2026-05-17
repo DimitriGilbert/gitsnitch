@@ -13,7 +13,8 @@
     "check-types": "turbo check-types",
     "test": "turbo test",
     "lint": "turbo lint",
-    "dev:web": "turbo -F web dev"
+    "dev:web": "turbo -F web dev",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@git-snitch/env": "workspace:*",
@@ -24,6 +25,7 @@
     "@git-snitch/config": "workspace:*",
     "@types/node": "catalog:",
     "turbo": "^2.8.12",
+    "gh-pages": "^6.3.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
