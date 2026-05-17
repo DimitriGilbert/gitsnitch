@@ -9,11 +9,19 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "git-snitch": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "pnpm --filter @git-snitch/renderer build && vitest run"
+  },
+  "dependencies": {
+    "@git-snitch/core": "workspace:*",
+    "@git-snitch/renderer": "workspace:*",
+    "commander": "^14.0.2"
   },
   "devDependencies": {
     "@git-snitch/config": "workspace:*",

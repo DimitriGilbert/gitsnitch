@@ -1,3 +1,19 @@
+#!/usr/bin/env node
+import { mkdir, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
+import { spawn } from "node:child_process";
+
+import { Command, InvalidArgumentError } from "commander";
+import {
+  generateRepoReport,
+  generateScanReport,
+  loadGitSnitchConfig,
+  mergeGitSnitchConfig,
+} from "@git-snitch/core";
+import { buildStandaloneReportHtml } from "@git-snitch/renderer/build";
+
+import type { GitSnitchConfigOverrides, RepoReportOptions, ScanOptions } from "@git-snitch/core";
+
 export interface PackageMetadata {
   readonly name: "@git-snitch/cli";
   readonly role: "cli";
@@ -9,3 +25,276 @@ export const cliPackageMetadata = {
   role: "cli",
   version: "0.0.0",
 } satisfies PackageMetadata;
+
+export interface CliIo {
+  readonly stdout: (text: string) => void;
+  readonly stderr: (text: string) => void;
+}
+
+export type CliOpener = (filePath: string) => Promise<void>;
+
+export interface CliDependencies {
+  readonly io?: CliIo;
+  readonly opener?: CliOpener;
+}
+
+interface SharedCommandOptions {
+  readonly output?: string;
+  readonly json?: boolean;
+  readonly open?: boolean;
+  readonly overwrite?: boolean;
+  readonly template?: string;
+  readonly since?: string;
+  readonly until?: string;
+}
+
+interface RepoCommandOptions extends SharedCommandOptions {
+  readonly branch?: readonly string[];
+  readonly allBranches?: boolean;
+}
+
+interface ScanCommandOptions extends SharedCommandOptions {
+  readonly period?: string;
+  readonly maxDepth?: number;
+  readonly exclude?: readonly string[];
+}
+
+export function createProgram(dependencies: CliDependencies = {}): Command {
+  const program = new Command();
+  const io = dependencies.io ?? defaultIo;
+  const opener = dependencies.opener ?? openFile;
+
+  program
+    .name("git-snitch")
+    .description("Generate standalone git activity reports.")
+    .version(cliPackageMetadata.version)
+    .exitOverride()
+    .configureOutput({
+      writeOut: (text) => io.stdout(text),
+      writeErr: (text) => io.stderr(text),
+    });
+
+  program
+    .command("repo")
+    .description("Generate a standalone report for one git repository.")
+    .argument("[repoPath]", "Repository path", ".")
+    .option("-o, --output <path>", "Output file path")
+    .option("--json", "Print report JSON instead of writing HTML")
+    .option("--open", "Open the generated HTML report")
+    .option("--no-overwrite", "Fail if the output file already exists")
+    .option("--template <path>", "TSX module exporting route-level template overrides")
+    .option("--since <iso>", "Only include commits since an ISO 8601 UTC date")
+    .option("--until <iso>", "Only include commits until an ISO 8601 UTC date")
+    .option("--branch <ref>", "Branch or ref to include", collectValues, [])
+    .option("--all-branches", "Include local and remote refs")
+    .action(async (repoPath: string, options: RepoCommandOptions, command: Command) => {
+      await runRepoCommand(repoPath, normalizeOverwriteOption(options, command), { io, opener });
+    });
+
+  program
+    .command("scan")
+    .description("Generate a standalone report for multiple discovered git repositories.")
+    .argument("[dir]", "Directory to scan", ".")
+    .option("-o, --output <path>", "Output file path")
+    .option("--json", "Print report JSON instead of writing HTML")
+    .option("--open", "Open the generated HTML report")
+    .option("--no-overwrite", "Fail if the output file already exists")
+    .option("--template <path>", "TSX module exporting route-level template overrides")
+    .option("--since <iso>", "Only include commits since an ISO 8601 UTC date")
+    .option("--until <iso>", "Only include commits until an ISO 8601 UTC date")
+    .option("--period <duration>", "Scan period such as 7d, 4w, 3m, or 1y")
+    .option("--max-depth <number>", "Maximum recursive discovery depth", parseNonNegativeInteger)
+    .option("--exclude <pattern>", "Additional directory glob to exclude", collectValues, [])
+    .action(async (directory: string, options: ScanCommandOptions, command: Command) => {
+      await runScanCommand(directory, normalizeOverwriteOption(options, command), { io, opener });
+    });
+
+  return program;
+}
+
+export async function runCli(argv: readonly string[], dependencies: CliDependencies = {}): Promise<number> {
+  try {
+    await createProgram(dependencies).parseAsync(["node", "git-snitch", ...argv], { from: "node" });
+    return 0;
+  } catch (error) {
+    const io = dependencies.io ?? defaultIo;
+    if (isCommanderHelpOrVersion(error)) {
+      return 0;
+    }
+    io.stderr(`${formatCliError(error)}\n`);
+    return 1;
+  }
+}
+
+async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dependencies: Required<CliDependencies>): Promise<void> {
+  const resolvedRepoPath = resolve(repoPath);
+  const config = mergeGitSnitchConfig(await loadGitSnitchConfig(resolvedRepoPath), buildSharedOverrides(options));
+  const shouldOpenReport = options.open === true;
+  const branches = options.branch ?? config.repo.branches ?? [];
+  const allBranches = options.allBranches ?? config.repo.allBranches ?? false;
+  if (allBranches && branches.length > 0) {
+    throw new Error("Invalid branch options: use either --branch or --all-branches, not both.");
+  }
+
+  const reportOptions: RepoReportOptions = {
+    outputPath: options.output ?? config.report.outputPath,
+    overwrite: options.overwrite ?? config.report.overwrite,
+    open: shouldOpenReport,
+    format: options.json ? "json" : config.report.format,
+    since: options.since ?? config.repo.since,
+    until: options.until ?? config.repo.until,
+    templatePath: options.template ?? config.report.templatePath,
+    repoPath: resolvedRepoPath,
+    branches,
+    allBranches,
+  };
+
+  const report = await generateRepoReport(reportOptions);
+  if (reportOptions.format === "json") {
+    dependencies.io.stdout(`${JSON.stringify(report, null, 2)}\n`);
+    return;
+  }
+
+  const outputPath = resolve(reportOptions.outputPath ?? deterministicOutputPath("repo", report.repository.name));
+  await writeHtmlReport({ outputPath, overwrite: reportOptions.overwrite, templatePath: reportOptions.templatePath, report });
+  dependencies.io.stdout(`Wrote ${outputPath}\n`);
+  if (shouldOpenReport) {
+    await dependencies.opener(outputPath);
+  }
+}
+
+async function runScanCommand(directory: string, options: ScanCommandOptions, dependencies: Required<CliDependencies>): Promise<void> {
+  const resolvedDirectory = resolve(directory);
+  const shouldOpenReport = options.open === true;
+  const scanOverrides = buildScanOverrides(options);
+  const config = mergeGitSnitchConfig(await loadGitSnitchConfig(resolvedDirectory), {
+    ...buildSharedOverrides(options),
+    scan: scanOverrides,
+  });
+  const scanOptions: ScanOptions = config.scan;
+  const format = options.json ? "json" : config.report.format;
+  const report = await generateScanReport({
+    directory: resolvedDirectory,
+    outputPath: options.output ?? config.report.outputPath,
+    overwrite: options.overwrite ?? config.report.overwrite,
+    open: shouldOpenReport,
+    format,
+    since: options.since,
+    until: options.until,
+    templatePath: options.template ?? config.report.templatePath,
+    period: options.period,
+    scan: scanOptions,
+  });
+
+  if (format === "json") {
+    dependencies.io.stdout(`${JSON.stringify(report, null, 2)}\n`);
+    return;
+  }
+
+  const outputPath = resolve(options.output ?? config.report.outputPath ?? deterministicOutputPath("scan", basename(resolvedDirectory)));
+  await writeHtmlReport({ outputPath, overwrite: config.report.overwrite, templatePath: options.template ?? config.report.templatePath, report });
+  dependencies.io.stdout(`Wrote ${outputPath}\n`);
+  if (shouldOpenReport) {
+    await dependencies.opener(outputPath);
+  }
+}
+
+function buildSharedOverrides(options: SharedCommandOptions): GitSnitchConfigOverrides {
+  return {
+    report: {
+      outputPath: options.output,
+      overwrite: options.overwrite,
+      format: options.json ? "json" : undefined,
+      templatePath: options.template,
+    },
+  };
+}
+
+function buildScanOverrides(options: ScanCommandOptions): GitSnitchConfigOverrides["scan"] {
+  return {
+    maxDepth: options.maxDepth,
+    excludePatterns: options.exclude ? [...options.exclude] : undefined,
+  };
+}
+
+async function writeHtmlReport(options: {
+  readonly outputPath: string;
+  readonly overwrite: boolean;
+  readonly templatePath?: string;
+  readonly report: Parameters<typeof buildStandaloneReportHtml>[0]["report"];
+}): Promise<void> {
+  if (!options.overwrite && await pathExists(options.outputPath)) {
+    throw new Error(`Output file already exists: ${options.outputPath}. Remove it, choose --output, or omit --no-overwrite to replace it.`);
+  }
+  await mkdir(dirname(options.outputPath), { recursive: true });
+  const html = await buildStandaloneReportHtml({ report: options.report, templatePath: options.templatePath });
+  await writeFile(options.outputPath, html, "utf8");
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && Object.getOwnPropertyDescriptor(error, "code")?.value === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function deterministicOutputPath(kind: "repo" | "scan", name: string): string {
+  return `git-snitch-${kind}-${slugify(name)}.html`;
+}
+
+function slugify(value: string): string {
+  return value.trim().toLowerCase().replaceAll(/[^a-z0-9._-]+/g, "-").replace(/^-|-$/g, "") || "report";
+}
+
+function parseNonNegativeInteger(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || String(parsed) !== value) {
+    throw new InvalidArgumentError("Expected a non-negative integer.");
+  }
+  return parsed;
+}
+
+function collectValues(value: string, previous: readonly string[]): readonly string[] {
+  return [...previous, value];
+}
+
+function normalizeOverwriteOption<Options extends SharedCommandOptions>(options: Options, command: Command): Options {
+  if (command.getOptionValueSource("overwrite") === "cli") {
+    return options;
+  }
+
+  return { ...options, overwrite: undefined };
+}
+
+async function openFile(filePath: string): Promise<void> {
+  const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
+  const args = process.platform === "win32" ? ["/c", "start", "", filePath] : [filePath];
+  const child = spawn(command, args, { detached: true, stdio: "ignore" });
+  child.unref();
+}
+
+const defaultIo: CliIo = {
+  stdout: (text) => process.stdout.write(text),
+  stderr: (text) => process.stderr.write(text),
+};
+
+function isCommanderHelpOrVersion(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && (error.code === "commander.helpDisplayed" || error.code === "commander.version");
+}
+
+function formatCliError(error: unknown): string {
+  if (typeof error === "object" && error !== null && "code" in error && error.code === "commander.unknownCommand") {
+    return "Unknown command. Use only `git-snitch repo` or `git-snitch scan`. Run `git-snitch --help` for usage.";
+  }
+  return error instanceof Error ? error.message : "Unknown CLI error.";
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const exitCode = await runCli(process.argv.slice(2));
+  process.exitCode = exitCode;
+}

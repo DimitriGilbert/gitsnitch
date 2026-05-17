@@ -24,6 +24,7 @@ export {
   deriveVelocityData,
   deriveWeeklyActivityData,
 } from "./charts";
+export { buildStandaloneReportHtml } from "./build";
 export { readInjectedReportData, isReadyReportData, useIsRepoReport, useIsScanReport, useReportData } from "./data";
 export { EmptyState, EmptyStateAction } from "./empty-state";
 export { downloadCsv, downloadJson, downloadTextFile, serializeCsv, serializeReportJson } from "./export";

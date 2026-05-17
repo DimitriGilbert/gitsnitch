@@ -10,8 +10,12 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 
+import type { RepoReportData, ScanReportData, TemplateExportHelpers } from "@git-snitch/core";
+
+import { templates as customTemplates } from "virtual:git-snitch-custom-templates";
 import { useReportData } from "./data";
 import { EmptyState } from "./empty-state";
+import { downloadCsv, downloadJson } from "./export";
 import { AppShell, StatsGrid } from "./layout";
 import { ChartsRoute } from "./charts-route";
 import { RepoOverview } from "./overview";
@@ -198,6 +202,10 @@ function OverviewRoute() {
     return <StatsGrid stats={[]} />;
   }
 
+  if (state.report.kind === "repo" && customTemplates.overview) {
+    return customTemplates.overview({ report: state.report, helpers: createTemplateHelpers(state.report) });
+  }
+
   return <RepoOverview report={state.report} />;
 }
 
@@ -206,6 +214,10 @@ function CommitsRouteContainer() {
 
   if (state.status !== "ready") {
     return <StatsGrid stats={[]} />;
+  }
+
+  if (state.report.kind === "repo" && customTemplates.commits) {
+    return customTemplates.commits({ report: state.report, helpers: createTemplateHelpers(state.report) });
   }
 
   return <CommitsRoute report={state.report} />;
@@ -218,6 +230,10 @@ function ContributorsRouteContainer() {
     return <StatsGrid stats={[]} />;
   }
 
+  if (state.report.kind === "repo" && customTemplates.contributors) {
+    return customTemplates.contributors({ report: state.report, helpers: createTemplateHelpers(state.report) });
+  }
+
   return <ContributorsRoute report={state.report} />;
 }
 
@@ -226,6 +242,10 @@ function ChartsRouteContainer() {
 
   if (state.status !== "ready") {
     return <StatsGrid stats={[]} />;
+  }
+
+  if (state.report.kind === "repo" && customTemplates.charts) {
+    return customTemplates.charts({ report: state.report, helpers: createTemplateHelpers(state.report) });
   }
 
   return <ChartsRoute report={state.report} />;
@@ -238,6 +258,10 @@ function QualityRouteContainer() {
     return <StatsGrid stats={[]} />;
   }
 
+  if (state.report.kind === "repo" && customTemplates.quality) {
+    return customTemplates.quality({ report: state.report, helpers: createTemplateHelpers(state.report) });
+  }
+
   return <QualityRoute report={state.report} />;
 }
 
@@ -248,6 +272,10 @@ function HotspotsRouteContainer() {
     return <StatsGrid stats={[]} />;
   }
 
+  if (state.report.kind === "repo" && customTemplates.hotspots) {
+    return customTemplates.hotspots({ report: state.report, helpers: createTemplateHelpers(state.report) });
+  }
+
   return <HotspotsRoute report={state.report} />;
 }
 
@@ -256,6 +284,10 @@ function ScanOverviewRouteContainer() {
 
   if (state.status !== "ready") {
     return <StatsGrid stats={[]} />;
+  }
+
+  if (state.report.kind === "scan" && customTemplates.scanOverview) {
+    return customTemplates.scanOverview({ report: state.report, helpers: createTemplateHelpers(state.report) });
   }
 
   return <ScanOverview report={state.report} />;
@@ -269,7 +301,18 @@ function ScanProjectRouteContainer() {
     return <StatsGrid stats={[]} />;
   }
 
+  if (state.report.kind === "scan" && customTemplates.scanProject) {
+    return customTemplates.scanProject({ report: state.report, helpers: createTemplateHelpers(state.report), projectId: params.projectSlug });
+  }
+
   return <ScanProjectRoute report={state.report} projectSlug={params.projectSlug} />;
+}
+
+function createTemplateHelpers(report: RepoReportData | ScanReportData): TemplateExportHelpers {
+  return {
+    downloadJson: (fileName) => downloadJson(fileName, report),
+    downloadCsv: (fileName, rows) => downloadCsv(fileName, rows),
+  };
 }
 
 export function App() {
