@@ -1,0 +1,3 @@
+{
+  "extends": "@git-snitch/config/tsconfig.base.json"
+}
