@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { extname, relative, resolve, sep } from "node:path";
 
-import type { CountLinesOfCodeOptions, LineCountByLanguage, LineCountResult, LineCountSkippedFile } from "./types";
+import type { CountLinesOfCodeOptions, LineCountByLanguage, LineCountResult, LineCountSkippedFile } from "./types.js";
 
 interface LanguageDefinition {
   readonly name: string;

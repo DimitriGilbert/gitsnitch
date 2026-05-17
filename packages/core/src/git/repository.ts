@@ -1,8 +1,8 @@
 import { basename } from "node:path";
 
-import type { RepositoryIdentity } from "../repos";
+import type { RepositoryIdentity } from "../repos.js";
 
-import type { CommitBranchLookupOptions, CommandFailure, RepositoryInfoOptions } from "./types";
+import type { CommitBranchLookupOptions, CommandFailure, RepositoryInfoOptions } from "./types.js";
 
 export async function getCurrentBranch(options: RepositoryInfoOptions): Promise<string | undefined> {
   try {

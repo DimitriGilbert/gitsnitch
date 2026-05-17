@@ -3,10 +3,10 @@ import type {
   CodeQualityMetricsWithoutHealthScore,
   HealthRecommendation,
   HealthScoreRating,
-} from "./analysis";
-import type { CommitRecord } from "./commits";
-import type { ContributorSummary } from "./contributors";
-import type { LineCountResult } from "./git/types";
+} from "./analysis.js";
+import type { CommitRecord } from "./commits.js";
+import type { ContributorSummary } from "./contributors.js";
+import type { LineCountResult } from "./git/types.js";
 
 /**
  * Calculates repository quality metrics from public report data.

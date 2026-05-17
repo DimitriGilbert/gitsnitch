@@ -3,8 +3,8 @@ import { cn } from "@git-snitch/ui/lib/utils";
 
 import type { FileHotspot, QualitySignal, RepoReportData, ReportData } from "@git-snitch/core";
 
-import { EmptyState } from "./empty-state";
-import { HotspotsTable } from "./tables";
+import { EmptyState } from "./empty-state.js";
+import { HotspotsTable } from "./tables.js";
 
 type RepoRouteProps = {
   readonly report: ReportData;

@@ -10,11 +10,11 @@ import {
   ContributorPieChart,
   deriveCodeOwnershipData,
   deriveContributorPieData,
-} from "./charts";
-import { EmptyState } from "./empty-state";
-import { downloadJson } from "./export";
-import { CommitsTable, ContributorsTable } from "./tables";
-import type { DownloadResult } from "./export";
+} from "./charts.js";
+import { EmptyState } from "./empty-state.js";
+import { downloadJson } from "./export.js";
+import { CommitsTable, ContributorsTable } from "./tables.js";
+import type { DownloadResult } from "./export.js";
 
 export type JsonDownloadResult = DownloadResult;
 export type JsonDownloader = (filename: string, rows: readonly JsonObject[]) => JsonDownloadResult;

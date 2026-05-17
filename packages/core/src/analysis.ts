@@ -1,6 +1,6 @@
-import type { CommitRecord } from "./commits";
-import type { ContributorSummary } from "./contributors";
-import type { IsoDateString } from "./json";
+import type { CommitRecord } from "./commits.js";
+import type { ContributorSummary } from "./contributors.js";
+import type { IsoDateString } from "./json.js";
 
 export interface LanguageStat {
   readonly language: string;

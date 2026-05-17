@@ -13,16 +13,16 @@ import {
 import type { RepoReportData, ScanReportData, TemplateExportHelpers } from "@git-snitch/core";
 
 import { templates as customTemplates } from "virtual:git-snitch-custom-templates";
-import { useReportData } from "./data";
-import { EmptyState } from "./empty-state";
-import { downloadCsv, downloadJson } from "./export";
-import { AppShell, StatsGrid } from "./layout";
-import { ChartsRoute } from "./charts-route";
-import { RepoOverview } from "./overview";
-import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes";
-import { CommitsRoute, ContributorsRoute } from "./repo-routes";
-import { ScanOverview, ScanProjectRoute, deriveScanProjectRouteEntries } from "./scan-routes";
-import { ThemeProvider } from "./theme";
+import { useReportData } from "./data.js";
+import { EmptyState } from "./empty-state.js";
+import { downloadCsv, downloadJson } from "./export.js";
+import { AppShell, StatsGrid } from "./layout.js";
+import { ChartsRoute } from "./charts-route.js";
+import { RepoOverview } from "./overview.js";
+import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes.js";
+import { CommitsRoute, ContributorsRoute } from "./repo-routes.js";
+import { ScanOverview, ScanProjectRoute, deriveScanProjectRouteEntries } from "./scan-routes.js";
+import { ThemeProvider } from "./theme.js";
 
 const rootRoute = createRootRoute({
   component: ReportShell,

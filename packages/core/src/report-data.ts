@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-import type { RepositoryAnalysis, ScanAnalysis } from "./analysis";
-import type { CommitRecord } from "./commits";
-import type { ContributorSummary } from "./contributors";
-import type { IsoDateString } from "./json";
-import type { RepoReportOptions, ScanReportOptions } from "./options";
-import type { RepositorySummary, ScannedRepositorySummary } from "./repos";
-import { isoDateStringSchema } from "./options";
+import type { RepositoryAnalysis, ScanAnalysis } from "./analysis.js";
+import type { CommitRecord } from "./commits.js";
+import type { ContributorSummary } from "./contributors.js";
+import type { IsoDateString } from "./json.js";
+import type { RepoReportOptions, ScanReportOptions } from "./options.js";
+import type { RepositorySummary, ScannedRepositorySummary } from "./repos.js";
+import { isoDateStringSchema } from "./options.js";
 
 export interface RepoReportData {
   readonly kind: "repo";

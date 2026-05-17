@@ -26,8 +26,8 @@ import {
   deriveTimeOfDayData,
   deriveVelocityData,
   deriveWeeklyActivityData,
-} from "./charts";
-import { EmptyState } from "./empty-state";
+} from "./charts.js";
+import { EmptyState } from "./empty-state.js";
 
 type ChartsRouteProps = {
   readonly report: ReportData;

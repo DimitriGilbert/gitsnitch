@@ -23,15 +23,15 @@ export {
   deriveTimeOfDayData,
   deriveVelocityData,
   deriveWeeklyActivityData,
-} from "./charts";
-export { buildStandaloneReportHtml } from "./build";
-export { readInjectedReportData, isReadyReportData, useIsRepoReport, useIsScanReport, useReportData } from "./data";
-export { EmptyState, EmptyStateAction } from "./empty-state";
-export { downloadCsv, downloadJson, downloadTextFile, serializeCsv, serializeReportJson } from "./export";
-export { createInlineHtmlPlugin, inlineHtmlAssets } from "./inline-plugin";
-export { AppShell, Header, Navigation, StatsGrid } from "./layout";
-export { injectReportDataIntoHtml, REPORT_DATA_PLACEHOLDER, serializeReportDataForHtml } from "./serialization";
-export { CommitsTable, ContributorsTable, DataTable, HotspotsTable } from "./tables";
+} from "./charts.js";
+export { buildStandaloneReportHtml } from "./build.js";
+export { readInjectedReportData, isReadyReportData, useIsRepoReport, useIsScanReport, useReportData } from "./data.js";
+export { EmptyState, EmptyStateAction } from "./empty-state.js";
+export { downloadCsv, downloadJson, downloadTextFile, serializeCsv, serializeReportJson } from "./export.js";
+export { createInlineHtmlPlugin, inlineHtmlAssets } from "./inline-plugin.js";
+export { AppShell, Header, Navigation, StatsGrid } from "./layout.js";
+export { injectReportDataIntoHtml, REPORT_DATA_PLACEHOLDER, serializeReportDataForHtml } from "./serialization.js";
+export { CommitsTable, ContributorsTable, DataTable, HotspotsTable } from "./tables.js";
 export type {
   ActivityHeatmapCell,
   AdditionsVsDeletionsPoint,
@@ -45,8 +45,8 @@ export type {
   TimeOfDayPoint,
   VelocityPoint,
   WeeklyActivityPoint,
-} from "./charts";
-export type { CsvCell, CsvRow, DownloadResult } from "./export";
-export type { NavigationItem, StatItem } from "./layout";
-export type { CommitsTableProps, ContributorsTableProps, DataTableEmptyState, DataTableExport, DataTableProps, HotspotsTableProps } from "./tables";
-export type { RouteTemplateOverrides, RouteTemplatePropsById, TemplateComponent, TemplateModule } from "./template";
+} from "./charts.js";
+export type { CsvCell, CsvRow, DownloadResult } from "./export.js";
+export type { NavigationItem, StatItem } from "./layout.js";
+export type { CommitsTableProps, ContributorsTableProps, DataTableEmptyState, DataTableExport, DataTableProps, HotspotsTableProps } from "./tables.js";
+export type { RouteTemplateOverrides, RouteTemplatePropsById, TemplateComponent, TemplateModule } from "./template.js";

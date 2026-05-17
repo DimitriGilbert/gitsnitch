@@ -19,7 +19,7 @@ describe("inline HTML asset behavior", () => {
     ]);
 
     expect(result.html).toContain("<style>\nbody{color:red}\n</style>");
-    expect(result.html).toContain("<script>\nwindow.reportLoaded=true;\n</script>");
+    expect(result.html).toContain('<script type="module">\nwindow.reportLoaded=true;\n</script>');
     expect(result.html).not.toContain("modulepreload");
     expect(result.html).not.toContain("src=");
     expect(result.html).not.toContain("href=");

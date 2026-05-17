@@ -1,4 +1,4 @@
-import type { IsoDateString } from "./json";
+import type { IsoDateString } from "./json.js";
 
 export type CommitClassification =
   | "feature"

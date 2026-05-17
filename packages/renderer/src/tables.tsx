@@ -13,9 +13,9 @@ import { useMemo, useState } from "react";
 import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table";
 import type { FileHotspot, CommitRecord, ContributorSummary } from "@git-snitch/core";
 
-import { EmptyState } from "./empty-state";
-import { downloadCsv } from "./export";
-import type { CsvRow, DownloadResult } from "./export";
+import { EmptyState } from "./empty-state.js";
+import { downloadCsv } from "./export.js";
+import type { CsvRow, DownloadResult } from "./export.js";
 
 type CsvDownloader = (filename: string, rows: readonly CsvRow[], columns?: readonly string[]) => DownloadResult;
 
@@ -33,7 +33,7 @@ export type DataTableEmptyState = {
 
 export type DataTableProps<TData> = {
   readonly data: readonly TData[];
-  readonly columns: readonly ColumnDef<TData>[];
+  readonly columns: ColumnDef<TData>[];
   readonly emptyState: DataTableEmptyState;
   readonly search?: {
     readonly placeholder: string;
@@ -78,10 +78,11 @@ export function DataTable<TData>({
     }
     return data.filter((row) => search.toText(row).toLocaleLowerCase().includes(normalizedQuery));
   }, [data, query, search]);
+  const tableData = useMemo(() => [...filteredData], [filteredData]);
 
   const table = useReactTable({
-    data: [...filteredData],
-    columns: [...columns],
+    data: tableData,
+    columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -319,7 +320,7 @@ function RiskBadge({ level }: { readonly level: FileHotspot["riskLevel"]["level"
   );
 }
 
-const commitColumns: readonly ColumnDef<CommitRecord>[] = [
+const commitColumns: ColumnDef<CommitRecord>[] = [
   {
     accessorKey: "shortHash",
     header: "Commit",
@@ -359,7 +360,7 @@ const commitColumns: readonly ColumnDef<CommitRecord>[] = [
   },
 ];
 
-const contributorColumns: readonly ColumnDef<ContributorSummary>[] = [
+const contributorColumns: ColumnDef<ContributorSummary>[] = [
   { accessorKey: "name", header: "Contributor", cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span> },
   { accessorKey: "email", header: "Email" },
   { accessorKey: "commitCount", header: "Commits", cell: ({ row }) => numberCell(row.original.commitCount) },
@@ -369,7 +370,7 @@ const contributorColumns: readonly ColumnDef<ContributorSummary>[] = [
   { accessorKey: "lastCommitAt", header: "Last seen", cell: ({ row }) => formatDate(row.original.lastCommitAt) },
 ];
 
-const hotspotColumns: readonly ColumnDef<FileHotspot>[] = [
+const hotspotColumns: ColumnDef<FileHotspot>[] = [
   { accessorKey: "path", header: "File", cell: ({ row }) => <span className="font-mono text-xs text-foreground">{row.original.path}</span> },
   { accessorKey: "riskLevel.level", header: "Risk", cell: ({ row }) => <RiskBadge level={row.original.riskLevel.level} /> },
   { accessorKey: "hotspotScore", header: "Score", cell: ({ row }) => numberCell(row.original.hotspotScore) },

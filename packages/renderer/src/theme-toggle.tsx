@@ -1,6 +1,6 @@
 import { Button } from "@git-snitch/ui/components/button";
 
-import { useTheme } from "./theme";
+import { useTheme } from "./theme.js";
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { IsoDateString } from "./json";
+import type { IsoDateString } from "./json.js";
 
 export const DEFAULT_SCAN_MAX_DEPTH = 3;
 

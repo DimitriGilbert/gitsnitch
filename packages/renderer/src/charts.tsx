@@ -23,10 +23,11 @@ import type { ReactNode } from "react";
 
 import type { CommitRecord, ContributorSummary, RepoReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
 
-import { EmptyState } from "./empty-state";
+import { EmptyState } from "./empty-state.js";
 
 const chartPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"] as const;
 const shortWeekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const staticChartProps = { isAnimationActive: false } as const;
 type Weekday = (typeof shortWeekdays)[number];
 
 export type CommitActivityPoint = { readonly period: string; readonly commits: number };
@@ -228,7 +229,7 @@ export function CommitActivityChart({ data }: { readonly data: readonly CommitAc
           <XAxis dataKey="period" tickLine={false} axisLine={false} />
           <YAxis width={32} tickLine={false} axisLine={false} allowDecimals={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Area type="monotone" dataKey="commits" stroke="var(--color-commits)" fill="var(--color-commits)" fillOpacity={0.18} />
+          <Area type="monotone" dataKey="commits" stroke="var(--color-commits)" fill="var(--color-commits)" fillOpacity={0.18} {...staticChartProps} />
         </AreaChart>
       </ChartContainer>
     </ChartPanel>
@@ -247,7 +248,7 @@ export function ContributorPieChart({ data }: { readonly data: readonly Contribu
       <ChartContainer config={{ commits: { label: "Commits" } }} className="h-64 w-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-          <Pie data={data} dataKey="commits" nameKey="name" innerRadius={56} outerRadius={88} paddingAngle={2}>
+          <Pie data={data} dataKey="commits" nameKey="name" innerRadius={56} outerRadius={88} paddingAngle={2} {...staticChartProps}>
             {data.map((slice, index) => (
               <Cell key={slice.name} fill={chartPalette[index % chartPalette.length]} />
             ))}
@@ -273,7 +274,7 @@ export function LanguageDistributionChart({ data }: { readonly data: readonly La
           <XAxis type="number" hide />
           <YAxis dataKey="language" type="category" width={96} tickLine={false} axisLine={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="lines" fill="var(--color-lines)" radius={[0, 3, 3, 0]} />
+          <Bar dataKey="lines" fill="var(--color-lines)" radius={[0, 3, 3, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>
@@ -295,8 +296,8 @@ export function AdditionsVsDeletionsChart({ data }: { readonly data: readonly Ad
           <XAxis dataKey="period" tickLine={false} axisLine={false} />
           <YAxis width={40} tickLine={false} axisLine={false} allowDecimals={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="additions" fill="var(--color-additions)" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="deletions" fill="var(--color-deletions)" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="additions" fill="var(--color-additions)" radius={[3, 3, 0, 0]} {...staticChartProps} />
+          <Bar dataKey="deletions" fill="var(--color-deletions)" radius={[3, 3, 0, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>
@@ -318,7 +319,7 @@ export function CommitSizeDistributionChart({ data }: { readonly data: readonly 
           <XAxis dataKey="label" tickLine={false} axisLine={false} />
           <YAxis width={32} tickLine={false} axisLine={false} allowDecimals={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="commits" fill="var(--color-commits)" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="commits" fill="var(--color-commits)" radius={[3, 3, 0, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>
@@ -334,7 +335,7 @@ export function WeeklyActivityChart({ data }: { readonly data: readonly WeeklyAc
           <XAxis dataKey="day" tickLine={false} axisLine={false} interval="preserveStartEnd" />
           <YAxis width={32} tickLine={false} axisLine={false} allowDecimals={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="commits" fill="var(--color-commits)" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="commits" fill="var(--color-commits)" radius={[3, 3, 0, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>
@@ -350,7 +351,7 @@ export function TimeOfDayChart({ data }: { readonly data: readonly TimeOfDayPoin
           <XAxis dataKey="hour" tickLine={false} axisLine={false} interval="preserveStartEnd" />
           <YAxis width={32} tickLine={false} axisLine={false} allowDecimals={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="commits" fill="var(--color-commits)" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="commits" fill="var(--color-commits)" radius={[3, 3, 0, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>
@@ -386,8 +387,8 @@ export function VelocityChart({ data }: { readonly data: readonly VelocityPoint[
           <XAxis dataKey="period" tickLine={false} axisLine={false} />
           <YAxis width={32} tickLine={false} axisLine={false} allowDecimals={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Line type="monotone" dataKey="commits" stroke="var(--color-commits)" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="average" stroke="var(--color-average)" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+          <Line type="monotone" dataKey="commits" stroke="var(--color-commits)" strokeWidth={2} dot={false} {...staticChartProps} />
+          <Line type="monotone" dataKey="average" stroke="var(--color-average)" strokeWidth={2} dot={false} strokeDasharray="4 4" {...staticChartProps} />
         </LineChart>
       </ChartContainer>
     </ChartPanel>
@@ -402,7 +403,7 @@ export function CodeOwnershipChart({ data }: { readonly data: readonly CodeOwner
           <PolarGrid />
           <PolarAngleAxis dataKey="owner" />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Radar dataKey="filesChanged" stroke="var(--color-filesChanged)" fill="var(--color-filesChanged)" fillOpacity={0.18} />
+          <Radar dataKey="filesChanged" stroke="var(--color-filesChanged)" fill="var(--color-filesChanged)" fillOpacity={0.18} {...staticChartProps} />
         </RadarChart>
       </ChartContainer>
     </ChartPanel>
@@ -418,8 +419,8 @@ export function ProjectsComparisonChart({ data }: { readonly data: readonly Proj
           <XAxis type="number" hide />
           <YAxis dataKey="project" type="category" width={112} tickLine={false} axisLine={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="commits" fill="var(--color-commits)" radius={[0, 3, 3, 0]} />
-          <Bar dataKey="contributors" fill="var(--color-contributors)" radius={[0, 3, 3, 0]} />
+          <Bar dataKey="commits" fill="var(--color-commits)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="contributors" fill="var(--color-contributors)" radius={[0, 3, 3, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>

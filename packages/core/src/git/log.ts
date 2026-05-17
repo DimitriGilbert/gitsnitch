@@ -1,6 +1,6 @@
-import type { CommitFileChange, CommitRecord } from "../commits";
+import type { CommitFileChange, CommitRecord } from "../commits.js";
 
-import type { AsyncCommandRunner, CommandFailure, GitLogOptions } from "./types";
+import type { AsyncCommandRunner, CommandFailure, GitLogOptions } from "./types.js";
 
 const RECORD_SEPARATOR = "\x1e";
 const FIELD_SEPARATOR = "\x1f";

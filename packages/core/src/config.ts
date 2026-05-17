@@ -9,7 +9,7 @@ import {
   DEFAULT_SCAN_MAX_DEPTH,
   repoReportOptionsObjectSchema,
   scanOptionsSchema,
-} from "./options";
+} from "./options.js";
 
 const defaultScanConfig = {
   maxDepth: DEFAULT_SCAN_MAX_DEPTH,

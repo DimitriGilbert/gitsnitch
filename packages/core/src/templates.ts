@@ -1,4 +1,4 @@
-import type { RepoReportData, ScanReportData } from "./report-data";
+import type { RepoReportData, ScanReportData } from "./report-data.js";
 
 export type RepoTemplateRouteId = "overview" | "commits" | "contributors" | "charts" | "quality" | "hotspots";
 

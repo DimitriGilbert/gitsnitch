@@ -1,23 +1,23 @@
 import { relative } from "node:path";
 
-import type { RepositoryAnalysis, ScanAnalysis } from "./analysis";
-import type { CommitRecord } from "./commits";
-import type { IsoDateString } from "./json";
-import type { RepoReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions } from "./options";
-import type { RepoReportData, ScanProjectReport, ScanReportData } from "./report-data";
-import type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos";
-import type { AsyncCommandRunner, LineCountResult } from "./git/types";
+import type { RepositoryAnalysis, ScanAnalysis } from "./analysis.js";
+import type { CommitRecord } from "./commits.js";
+import type { IsoDateString } from "./json.js";
+import type { RepoReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions } from "./options.js";
+import type { RepoReportData, ScanProjectReport, ScanReportData } from "./report-data.js";
+import type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos.js";
+import type { AsyncCommandRunner, LineCountResult } from "./git/types.js";
 
-import { calculateCodeQualityMetrics, generateHealthRecommendations } from "./quality-metrics";
-import { classifyCommit } from "./commit-classifier";
-import { aggregateContributors, generateContributorStats } from "./analysis";
-import { findFileHotspots } from "./hotspots";
-import { DEFAULT_SCAN_EXCLUDE_PATTERNS, repoReportOptionsSchema, scanReportOptionsSchema } from "./options";
-import { discoverGitRepositories } from "./git/discovery";
-import { getGitCommits } from "./git/log";
-import { countLinesOfCode } from "./git/loc";
-import { getCurrentBranch, getRepositoryInfo } from "./git/repository";
-import { createGitCommandRunner } from "./git/runner";
+import { calculateCodeQualityMetrics, generateHealthRecommendations } from "./quality-metrics.js";
+import { classifyCommit } from "./commit-classifier.js";
+import { aggregateContributors, generateContributorStats } from "./analysis.js";
+import { findFileHotspots } from "./hotspots.js";
+import { DEFAULT_SCAN_EXCLUDE_PATTERNS, repoReportOptionsSchema, scanReportOptionsSchema } from "./options.js";
+import { discoverGitRepositories } from "./git/discovery.js";
+import { getGitCommits } from "./git/log.js";
+import { countLinesOfCode } from "./git/loc.js";
+import { getCurrentBranch, getRepositoryInfo } from "./git/repository.js";
+import { createGitCommandRunner } from "./git/runner.js";
 
 export interface ReportGenerationDependencies {
   readonly runner?: AsyncCommandRunner;

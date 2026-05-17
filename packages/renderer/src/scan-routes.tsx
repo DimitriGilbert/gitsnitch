@@ -2,9 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/compone
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@git-snitch/ui/components/table";
 import type { ContributorSummary, RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
 
-import { EmptyState } from "./empty-state";
-import { StatsGrid } from "./layout";
-import { RepoOverview } from "./overview";
+import { EmptyState } from "./empty-state.js";
+import { StatsGrid } from "./layout.js";
+import { RepoOverview } from "./overview.js";
 
 type ScanRouteProps = {
   readonly report: ReportData;

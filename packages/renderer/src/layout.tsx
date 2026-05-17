@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/compone
 import { cn } from "@git-snitch/ui/lib/utils";
 import type { ReactNode } from "react";
 
-import { EmptyState } from "./empty-state";
-import { ThemeToggle } from "./theme-toggle";
+import { EmptyState } from "./empty-state.js";
+import { ThemeToggle } from "./theme-toggle.js";
 
 export type NavigationItem = {
   readonly label: string;

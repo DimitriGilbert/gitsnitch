@@ -6,7 +6,7 @@ import type { ReportData } from "@git-snitch/core";
 
 import { build as viteBuild } from "vite";
 
-import { injectReportDataIntoHtml } from "./serialization";
+import { injectReportDataIntoHtml } from "./serialization.js";
 
 export interface BuildReportHtmlOptions {
   readonly report: ReportData;

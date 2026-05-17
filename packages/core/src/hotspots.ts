@@ -1,6 +1,6 @@
-import type { FileHotspot, FileRiskLevel } from "./analysis";
-import type { CommitRecord } from "./commits";
-import type { IsoDateString } from "./json";
+import type { FileHotspot, FileRiskLevel } from "./analysis.js";
+import type { CommitRecord } from "./commits.js";
+import type { IsoDateString } from "./json.js";
 
 interface MutableFileStats {
   changes: number;

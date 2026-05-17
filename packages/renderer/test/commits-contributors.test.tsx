@@ -66,6 +66,17 @@ describe("commits route", () => {
     expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
   });
 
+  it("keeps commit table interactions responsive after sorting and pagination changes", () => {
+    render(<CommitsRoute report={repoReportFixture} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Authored" }));
+    fireEvent.click(screen.getByRole("button", { name: "5 rows per page" }));
+    fireEvent.change(screen.getByPlaceholderText("Search commits, authors, files"), { target: { value: "Ada" } });
+
+    expect(screen.getByRole("table", { name: "Commits table" })).toBeTruthy();
+    expect(screen.getByText(/1-\d+ of \d+/)).toBeTruthy();
+  });
+
   it("renders repo-only mismatch and empty repository states explicitly", () => {
     const { rerender } = render(<CommitsRoute report={scanReportFixture} />);
 

@@ -33,7 +33,7 @@ export function inlineHtmlAssets(html: string, assets: readonly InlineHtmlAsset[
     }
 
     inlined.add(asset.fileName);
-    const attributes = `${beforeAttributes} ${afterAttributes}`.replace(/\s*type=["']module["']/, "").replace(/\s*crossorigin(?:=["'][^"']*["'])?/, "").trim();
+    const attributes = `${beforeAttributes} ${afterAttributes}`.replace(/\s*crossorigin(?:=["'][^"']*["'])?/, "").trim();
     const attributeText = attributes.length > 0 ? ` ${attributes}` : "";
 
     return `<script${attributeText}>\n${asset.source}\n</script>`;

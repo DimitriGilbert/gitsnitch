@@ -1,5 +1,5 @@
-import type { CommitRecord } from "../commits";
-import type { RepositoryIdentity } from "../repos";
+import type { CommitRecord } from "../commits.js";
+import type { RepositoryIdentity } from "../repos.js";
 
 export interface CommandResult {
   readonly stdout: string;

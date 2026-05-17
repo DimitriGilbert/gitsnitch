@@ -2,9 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/compone
 
 import type { CommitRecord, RepoReportData, ReportData } from "@git-snitch/core";
 
-import { CommitActivityChart, deriveCommitActivityData } from "./charts";
-import { EmptyState } from "./empty-state";
-import { StatsGrid } from "./layout";
+import { CommitActivityChart, deriveCommitActivityData } from "./charts.js";
+import { EmptyState } from "./empty-state.js";
+import { StatsGrid } from "./layout.js";
 
 type StreakSummary =
   | {

@@ -1,4 +1,4 @@
-import type { CommitClassification, CommitRecord } from "./commits";
+import type { CommitClassification, CommitRecord } from "./commits.js";
 
 type ConventionalCommitToken =
   | "feat"

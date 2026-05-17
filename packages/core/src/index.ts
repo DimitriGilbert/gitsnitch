@@ -29,16 +29,16 @@ export type {
   VelocityInsight,
   VelocityLevel,
   WorkLifeBalance,
-} from "./analysis";
-export type { CommitMessageQuality, CommitTypeBreakdown } from "./commit-classifier";
-export type { CommitAuthor, CommitClassification, CommitFileChange, CommitRecord } from "./commits";
-export type { GitSnitchConfig, GitSnitchConfigOverrides } from "./config";
-export type { ContributorIdentity, ContributorSummary } from "./contributors";
-export type { IsoDateString, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./json";
-export type { RepoReportOptions, ReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions } from "./options";
-export type { GenerateScanReportOptions, ReportGenerationDependencies } from "./report";
-export type { RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "./report-data";
-export type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos";
+} from "./analysis.js";
+export type { CommitMessageQuality, CommitTypeBreakdown } from "./commit-classifier.js";
+export type { CommitAuthor, CommitClassification, CommitFileChange, CommitRecord } from "./commits.js";
+export type { GitSnitchConfig, GitSnitchConfigOverrides } from "./config.js";
+export type { ContributorIdentity, ContributorSummary } from "./contributors.js";
+export type { IsoDateString, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./json.js";
+export type { RepoReportOptions, ReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions } from "./options.js";
+export type { GenerateScanReportOptions, ReportGenerationDependencies } from "./report.js";
+export type { RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "./report-data.js";
+export type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos.js";
 export type {
   AsyncCommandRunner,
   CommandResult,
@@ -49,7 +49,7 @@ export type {
   LineCountByLanguage,
   LineCountResult,
   LineCountSkippedFile,
-} from "./git/types";
+} from "./git/types.js";
 export type {
   RepoTemplateContext,
   RepoTemplateRouteId,
@@ -58,7 +58,7 @@ export type {
   ScanTemplateRouteId,
   TemplateExportHelpers,
   TemplateRouteId,
-} from "./templates";
+} from "./templates.js";
 
 export {
   GitSnitchConfigError,
@@ -66,7 +66,7 @@ export {
   gitSnitchConfigSchema,
   loadGitSnitchConfig,
   mergeGitSnitchConfig,
-} from "./config";
+} from "./config.js";
 export {
   DEFAULT_SCAN_EXCLUDE_PATTERNS,
   DEFAULT_SCAN_INCLUDE_PATTERNS,
@@ -76,16 +76,16 @@ export {
   scanPeriodOptionsSchema,
   scanOptionsSchema,
   scanReportOptionsSchema,
-} from "./options";
-export { generateRepoReport, generateScanReport, GitSnitchReportError, parseScanPeriod } from "./report";
-export { isRepoReportData, isScanReportData, reportDataDiscriminantSchema, reportKindSchema } from "./report-data";
-export { analyzeCommitMessageQuality, classifyCommit, generateCommitTypeBreakdown } from "./commit-classifier";
-export { discoverGitRepositories } from "./git/discovery";
-export { buildGitLogArgs, getGitCommits } from "./git/log";
-export { countLinesOfCode } from "./git/loc";
-export { getCommitBranches, getCurrentBranch, getRepositoryInfo, normalizeRemoteUrl } from "./git/repository";
-export { createGitCommandRunner } from "./git/runner";
-export { calculateRiskLevel, findFileHotspots } from "./hotspots";
+} from "./options.js";
+export { generateRepoReport, generateScanReport, GitSnitchReportError, parseScanPeriod } from "./report.js";
+export { isRepoReportData, isScanReportData, reportDataDiscriminantSchema, reportKindSchema } from "./report-data.js";
+export { analyzeCommitMessageQuality, classifyCommit, generateCommitTypeBreakdown } from "./commit-classifier.js";
+export { discoverGitRepositories } from "./git/discovery.js";
+export { buildGitLogArgs, getGitCommits } from "./git/log.js";
+export { countLinesOfCode } from "./git/loc.js";
+export { getCommitBranches, getCurrentBranch, getRepositoryInfo, normalizeRemoteUrl } from "./git/repository.js";
+export { createGitCommandRunner } from "./git/runner.js";
+export { calculateRiskLevel, findFileHotspots } from "./hotspots.js";
 export {
   analyzeDevelopmentRhythm,
   calculateCollaborationScore,
@@ -94,7 +94,7 @@ export {
   findPeakDays,
   findPeakHours,
   generateProductivityInsights,
-} from "./productivity";
+} from "./productivity.js";
 export {
   aggregateContributors,
   calculateProjectStats,
@@ -102,7 +102,7 @@ export {
   filterCommitsByDate,
   generateContributorStats,
   sortCommits,
-} from "./analysis";
+} from "./analysis.js";
 export {
   calculateBusFactor,
   calculateChurnRate,
@@ -111,4 +111,4 @@ export {
   calculateHealthScore,
   generateHealthRecommendations,
   getHealthScoreRating,
-} from "./quality-metrics";
+} from "./quality-metrics.js";

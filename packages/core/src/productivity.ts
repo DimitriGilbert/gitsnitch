@@ -6,9 +6,9 @@ import type {
   PeakHourInsight,
   ProductivityInsights,
   VelocityInsight,
-} from "./analysis";
-import type { CommitRecord } from "./commits";
-import type { ContributorSummary } from "./contributors";
+} from "./analysis.js";
+import type { CommitRecord } from "./commits.js";
+import type { ContributorSummary } from "./contributors.js";
 
 const millisecondsPerDay = 86_400_000;
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;

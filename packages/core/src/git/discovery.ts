@@ -1,9 +1,9 @@
 import { readdir } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
-import { DEFAULT_SCAN_MAX_DEPTH } from "../options";
+import { DEFAULT_SCAN_MAX_DEPTH } from "../options.js";
 
-import type { DiscoverRepositoriesOptions, DiscoveredRepository } from "./types";
+import type { DiscoverRepositoriesOptions, DiscoveredRepository } from "./types.js";
 
 const DEFAULT_EXCLUDED_DIRECTORY_NAMES = new Set([
   ".git",
