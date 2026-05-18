@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
 
-import type { CommitRecord, RepoReportData, ReportData } from "@git-snitch/core";
+import type { CommitRecord, GitHubRepoMeta, RepoReportData, ReportData } from "@git-snitch/core";
 
 import { CommitActivityChart, deriveCommitActivityData } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
@@ -94,6 +94,61 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en").format(value);
 }
 
+function formatCompact(value: number) {
+  return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
+function GitHubMetaBar({ meta }: { readonly meta: GitHubRepoMeta }) {
+  const items: readonly string[] = [
+    ...(meta.stars !== undefined && meta.stars > 0 ? [`Stars ${formatCompact(meta.stars)}`] : []),
+    ...(meta.forks !== undefined && meta.forks > 0 ? [`Forks ${formatCompact(meta.forks)}`] : []),
+    ...(meta.license !== undefined && meta.license.length > 0 ? [`License ${meta.license}`] : []),
+    ...(meta.visibility !== undefined ? [meta.visibility === "private" ? "Private" : "Public"] : []),
+    ...(meta.openIssues !== undefined && meta.openIssues > 0 ? [`Issues ${formatCompact(meta.openIssues)}`] : []),
+    ...(meta.openPullRequests !== undefined && meta.openPullRequests > 0 ? [`PRs ${formatCompact(meta.openPullRequests)}`] : []),
+  ];
+
+  const topics = meta.topics ?? [];
+
+  if (items.length === 0 && topics.length === 0 && meta.homepageUrl === undefined) {
+    return null;
+  }
+
+  return (
+    <section className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border/50 bg-muted/25 px-4 py-3">
+      {items.map((item) => {
+        const spaceIndex = item.indexOf(" ");
+        const label = spaceIndex >= 0 ? item.slice(0, spaceIndex) : item;
+        const value = spaceIndex >= 0 ? item.slice(spaceIndex + 1) : undefined;
+        return (
+          <span key={item} className="text-sm text-muted-foreground">
+            {label}{value !== undefined ? (<>
+{" "}<strong className="font-medium text-foreground">{value}</strong>
+</>) : null}
+          </span>
+        );
+      })}
+      {meta.homepageUrl !== undefined && meta.homepageUrl.length > 0 ? (
+        <a
+          className="text-sm text-muted-foreground hover:text-foreground"
+          href={meta.homepageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Homepage
+        </a>
+      ) : null}
+      {topics.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {topics.map((topic) => (
+            <span key={topic} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{topic}</span>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function buildOverviewStats(report: RepoReportData) {
   return [
     { label: "Total commits", value: formatNumber(report.commits.length), description: "Commits included in this report" },
@@ -170,10 +225,13 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
     );
   }
 
+  const githubMeta = report.repository.github;
+
   if (report.commits.length === 0 && report.contributors.length === 0) {
     return (
       <div className="grid gap-6">
         <StatsGrid stats={buildOverviewStats(report)} />
+        {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
         <EmptyState
           title="This repository has no commit activity yet"
           description="git-snitch found a repository report, but there are no commits or contributors to summarize. Charts and streaks will appear after activity exists."
@@ -185,6 +243,7 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
   return (
     <div className="grid gap-6">
       <StatsGrid stats={buildOverviewStats(report)} />
+      {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
       <section aria-label="Repository overview previews" className="grid grid-flow-dense gap-6 lg:grid-cols-2">
         <StreakCard streak={deriveStreakSummary(report.commits)} />
         <ChartPreview report={report} />

@@ -159,7 +159,11 @@ function ReportRootLayout() {
   }
 
   const report = state.report;
+  const isAnonymized = report.anonymization?.applied === true;
   const title = report.kind === "repo" ? report.repository.name : "Scan report";
+  const titleHref = report.kind === "repo" && !isAnonymized && report.repository.remoteUrl
+    ? report.repository.remoteUrl
+    : undefined;
   const scanNavigationItems = report.kind === "scan"
     ? [
         { label: "Scan Overview", href: "#/scan", current: pathname === "/scan", disabled: false },
@@ -183,12 +187,18 @@ function ReportRootLayout() {
         ...scanNavigationItems,
       ];
 
+  const headerActions = isAnonymized
+    ? <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Anonymized</span>
+    : undefined;
+
   return (
     <AppShell
       title={title}
+      titleHref={titleHref}
       eyebrow="Standalone git activity report"
       description={`Renderer pipeline loaded a ${report.kind} report generated at ${report.generatedAt}.`}
       navigationItems={navigationItems}
+      headerActions={headerActions}
     >
       <Outlet />
     </AppShell>

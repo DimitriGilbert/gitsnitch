@@ -21,6 +21,7 @@ export type StatItem = {
 
 type HeaderProps = {
   readonly title: string;
+  readonly titleHref?: string;
   readonly eyebrow?: string;
   readonly description?: string;
   readonly actions?: ReactNode;
@@ -39,6 +40,7 @@ type StatsGridProps = {
 
 type AppShellProps = {
   readonly title: string;
+  readonly titleHref?: string;
   readonly eyebrow?: string;
   readonly description?: string;
   readonly navigationItems?: readonly NavigationItem[];
@@ -46,13 +48,21 @@ type AppShellProps = {
   readonly children: ReactNode;
 };
 
-export function Header({ title, eyebrow, description, actions }: HeaderProps) {
+export function Header({ title, titleHref, eyebrow, description, actions }: HeaderProps) {
+  const titleContent = <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>;
+
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-4xl">
           {eyebrow ? <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">{eyebrow}</p> : null}
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>
+          {titleHref ? (
+            <a href={titleHref} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              {titleContent}
+            </a>
+          ) : (
+            titleContent
+          )}
           {description ? <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -125,6 +135,7 @@ export function StatsGrid({
 
 export function AppShell({
   title,
+  titleHref,
   eyebrow,
   description,
   navigationItems = [],
@@ -133,7 +144,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-background text-foreground transition-colors">
-      <Header title={title} eyebrow={eyebrow} description={description} actions={headerActions} />
+      <Header title={title} titleHref={titleHref} eyebrow={eyebrow} description={description} actions={headerActions} />
       <Navigation items={navigationItems} />
       <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 sm:py-10")}>{children}</div>
     </main>
