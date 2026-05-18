@@ -1,6 +1,6 @@
 import { buttonVariants } from "@git-snitch/ui/components/button";
 import { cn } from "@git-snitch/ui/lib/utils";
-import { ArrowRight, Boxes, Code2, ExternalLink, FileArchive, MonitorDown, Package, ScanSearch } from "lucide-react";
+import { ArrowRight, Boxes, Code2, ExternalLink, FileArchive, MonitorDown, Package, ScanSearch, ShieldCheck, Star } from "lucide-react";
 import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
 
@@ -38,6 +38,18 @@ const features = [
     className: "md:col-span-2 md:row-span-2",
     icon: MonitorDown,
   },
+  {
+    title: "Privacy-first sharing",
+    description: "Share reports without exposing repo names, author emails, or file paths. Pass --anon to sanitize everything in one flag.",
+    className: "md:col-span-3 md:row-span-2",
+    icon: ShieldCheck,
+  },
+  {
+    title: "GitHub enriched",
+    description: "Stars, forks, license, and topics automatically appear in your reports via the gh CLI. No token setup beyond what you already have.",
+    className: "md:col-span-3 md:row-span-2",
+    icon: Star,
+  },
 ] as const;
 
 const usageSteps = [
@@ -57,6 +69,10 @@ const usageSteps = [
     title: "Customize or protect output",
     commands: ["pnpm exec git-snitch repo --template ./report-template.tsx", "pnpm exec git-snitch repo --no-overwrite"],
   },
+  {
+    title: "Share safely",
+    commands: ["pnpm exec git-snitch repo --anon --output report.html"],
+  },
 ] as const;
 
 const reportScreens = [
@@ -72,7 +88,7 @@ const reportScreens = [
   },
 ] as const;
 
-const marqueeItems = ["repo", "scan", "--template", "--json", "--open", "--no-overwrite", "standalone HTML"] as const;
+const marqueeItems = ["repo", "scan", "--anon", "--template", "--json", "--open", "--no-overwrite", "--github", "worklog", "standalone HTML"] as const;
 
 export function MarketingLanding() {
   const mainRef = useRef<HTMLElement>(null);
@@ -274,7 +290,7 @@ function UsageGuide() {
             The v1 CLI exposes only <code>git-snitch repo</code> and <code>git-snitch scan</code>. Output overwrites by default; add <code>--no-overwrite</code> to fail when the target exists.
           </p>
         </div>
-        <div className="grid gap-4 lg:grid-cols-4">
+        <div className="grid gap-4 lg:grid-cols-5">
           {usageSteps.map((step) => (
             <article key={step.title} className="rounded-[1.75rem] bg-black p-5 text-white shadow-xl shadow-black/20">
               <h3 className="text-xl font-semibold tracking-[-0.03em]">{step.title}</h3>
