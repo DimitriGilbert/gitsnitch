@@ -22,6 +22,7 @@ describe("chart data derivation", () => {
       { period: "2024-01", additions: 12, deletions: 1 },
     ]);
     expect(deriveCommitSizeDistributionData(repoReportFixture.commits)).toEqual([
+      { label: "0 (empty)", commits: 0 },
       { label: "1-10", commits: 0 },
       { label: "11-50", commits: 1 },
       { label: "51-200", commits: 0 },

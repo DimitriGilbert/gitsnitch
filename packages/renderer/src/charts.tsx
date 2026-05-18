@@ -117,6 +117,7 @@ export function deriveAdditionsVsDeletionsData(commits: readonly CommitRecord[])
 
 export function deriveCommitSizeDistributionData(commits: readonly CommitRecord[]): readonly CommitSizeBucket[] {
   const buckets = [
+    { label: "0 (empty)", min: 0, max: 0, commits: 0 },
     { label: "1-10", min: 1, max: 10, commits: 0 },
     { label: "11-50", min: 11, max: 50, commits: 0 },
     { label: "51-200", min: 51, max: 200, commits: 0 },
@@ -157,12 +158,27 @@ export function deriveTimeOfDayData(commits: readonly CommitRecord[]): readonly 
 }
 
 export function deriveContributionCalendarData(commits: readonly CommitRecord[]): readonly ContributionCalendarDay[] {
+  if (commits.length === 0) return [];
+
   const counts = new Map<string, number>();
+  let minDate = "";
+  let maxDate = "";
   for (const commit of commits) {
     const date = commit.authoredAt.slice(0, 10);
     counts.set(date, (counts.get(date) ?? 0) + 1);
+    if (minDate === "" || date < minDate) minDate = date;
+    if (maxDate === "" || date > maxDate) maxDate = date;
   }
-  return [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, commits]) => ({ date, commits }));
+
+  const result: ContributionCalendarDay[] = [];
+  const current = new Date(`${minDate}T00:00:00Z`);
+  const end = new Date(`${maxDate}T00:00:00Z`);
+  while (current <= end) {
+    const dateStr = current.toISOString().slice(0, 10);
+    result.push({ date: dateStr, commits: counts.get(dateStr) ?? 0 });
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+  return result;
 }
 
 export function deriveVelocityData(report: Pick<RepoReportData, "analysis">): readonly VelocityPoint[] {
@@ -359,6 +375,11 @@ export function TimeOfDayChart({ data }: { readonly data: readonly TimeOfDayPoin
 }
 
 export function ContributionCalendar({ data }: { readonly data: readonly ContributionCalendarDay[] }) {
+  const firstDate = data.length > 0 ? data[0] : undefined;
+  const firstDayOffset = firstDate !== undefined
+    ? new Date(`${firstDate.date}T00:00:00Z`).getUTCDay()
+    : 0;
+
   return (
     <ChartPanel
       title="Contribution calendar"
@@ -367,7 +388,13 @@ export function ContributionCalendar({ data }: { readonly data: readonly Contrib
       emptyTitle="No contribution calendar to show"
       emptyDescription="The calendar needs at least one dated commit."
     >
-      <div className="grid grid-flow-dense grid-cols-7 gap-1" aria-label="Daily contribution calendar">
+      <div className="grid grid-cols-7 gap-1" aria-label="Daily contribution calendar">
+        {shortWeekdays.map((day) => (
+          <div key={day} className="text-center text-xs text-muted-foreground">{day}</div>
+        ))}
+        {Array.from({ length: firstDayOffset }, (_, i) => (
+          <div key={`offset-${i}`} />
+        ))}
         {data.map((day) => (
           <div key={day.date} title={`${day.date}: ${day.commits} commits`} className={cn("h-7 rounded-sm border", heatClass(day.commits))}>
             <span className="sr-only">{`${day.date}: ${day.commits} commits`}</span>

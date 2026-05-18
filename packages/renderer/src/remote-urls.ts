@@ -1,5 +1,28 @@
 export type GitProvider = "github" | "gitlab" | "bitbucket" | "unknown";
 
+const SCP_REMOTE = /^git@([^:]+):(.+?)$/;
+
+export function normalizeRemoteToWebUrl(remoteUrl: string): string {
+  const trimmed = remoteUrl.replace(/\/+$/, "");
+
+  const scpMatch = SCP_REMOTE.exec(trimmed);
+  if (scpMatch && scpMatch[1] !== undefined && scpMatch[2] !== undefined) {
+    return `https://${scpMatch[1]}/${scpMatch[2].replace(/\.git$/, "")}`;
+  }
+
+  if (trimmed.startsWith("ssh://")) {
+    try {
+      const parsed = new URL(trimmed);
+      const path = parsed.pathname.replace(/^\/+/, "").replace(/\.git$/, "");
+      return `https://${parsed.hostname}/${path}`;
+    } catch {
+      return trimmed.replace(/\.git$/, "");
+    }
+  }
+
+  return trimmed.replace(/\.git$/, "");
+}
+
 export function detectProvider(remoteUrl: string | undefined): GitProvider {
   if (remoteUrl === undefined) {
     return "unknown";
@@ -29,7 +52,7 @@ export function buildCommitUrl(remoteUrl: string | undefined, hash: string): str
   }
 
   const provider = detectProvider(remoteUrl);
-  const base = remoteUrl.replace(/\/+$/, "");
+  const base = normalizeRemoteToWebUrl(remoteUrl);
 
   switch (provider) {
     case "github":
@@ -49,7 +72,7 @@ export function buildFileUrl(remoteUrl: string | undefined, branch: string | und
   }
 
   const provider = detectProvider(remoteUrl);
-  const base = remoteUrl.replace(/\/+$/, "");
+  const base = normalizeRemoteToWebUrl(remoteUrl);
 
   switch (provider) {
     case "github":
@@ -68,7 +91,7 @@ function extractHost(remoteUrl: string): string | undefined {
     const parsed = new URL(remoteUrl);
     return parsed.hostname;
   } catch {
-    const scpLike = /^git@([^:]+):/.exec(remoteUrl);
-    return scpLike?.[1];
+    const scpMatch = SCP_REMOTE.exec(remoteUrl);
+    return scpMatch?.[1];
   }
 }
