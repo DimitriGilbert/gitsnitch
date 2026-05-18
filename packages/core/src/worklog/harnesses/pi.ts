@@ -6,7 +6,7 @@ export class PiHarness implements AiHarness {
   public readonly name = "pi";
 
   public async generate(prompt: string, options: HarnessCallOptions): Promise<string> {
-    const args: string[] = ["--prompt", prompt, "--non-interactive"];
+    const args: string[] = ["-p", prompt];
 
     if (options.model !== undefined && options.model.length > 0) {
       args.push("--model", options.model);
@@ -31,7 +31,7 @@ export class PiHarness implements AiHarness {
       child.on("error", (error: Error) => {
         reject(
           new Error(
-            `Failed to spawn pi CLI: ${error.message}. Install pi or use --harness opencode`,
+            `pi CLI not found: ${error.message}. Install pi or use --harness opencode`,
           ),
         );
       });

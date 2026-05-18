@@ -6,10 +6,10 @@ export class CodexHarness implements AiHarness {
   public readonly name = "codex";
 
   public async generate(prompt: string, options: HarnessCallOptions): Promise<string> {
-    const args: string[] = ["--prompt", prompt, "--non-interactive"];
+    const args: string[] = ["exec", prompt];
 
     if (options.model !== undefined && options.model.length > 0) {
-      args.push("--model", options.model);
+      args.push("-m", options.model);
     }
 
     return new Promise<string>((resolve, reject) => {
@@ -31,7 +31,7 @@ export class CodexHarness implements AiHarness {
       child.on("error", (error: Error) => {
         reject(
           new Error(
-            `Failed to spawn codex CLI: ${error.message}. Install codex or use --harness opencode`,
+            `codex CLI not found: ${error.message}. Install codex or use --harness opencode`,
           ),
         );
       });
