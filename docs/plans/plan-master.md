@@ -4,7 +4,7 @@
 
 This plan combines three related features into a single orchestrated workflow:
 
-1. **4 AI Skills** (repo-work-report, worklog, changelog, devlog) — instruction-only `.opencode/skills/` files shipped with the repo
+1. **4 AI Skills** (repo-work-report, worklog, changelog, devlog) — instruction-only `skills/` files shipped with the repo
 2. **`worklog` CLI command** — standalone command that takes a JSON export file and produces an AI-generated worklog via a harness subprocess
 3. **`--worklog-*` / `--wl-*` options** — worklog output mode added to existing `repo` and `scan` commands, with config integration and HTML rendering
 
@@ -26,12 +26,12 @@ All paths are relative to `/home/didi/workspace/Code/git-report/git-snitch/`.
 
 **Type**: Parallel
 
-**Context**: These are instruction-only markdown files under `.opencode/skills/`. They contain no code, no TypeScript, no imports. They are SKILL.md files (and one REFERENCES.md) that tell an AI agent how to generate specific document types from git report data.
+**Context**: These are instruction-only markdown files under `skills/`. They contain no code, no TypeScript, no imports. They are SKILL.md files (and one REFERENCES.md) that tell an AI agent how to generate specific document types from git report data.
 
 ### Sub-phase 1.1: repo-work-report Skill
 
 **Requirements**:
-- Create directory `git-snitch/.opencode/skills/repo-work-report/`
+- Create directory `git-snitch/skills/repo-work-report/`
 - Create `SKILL.md` (single file, must be under 100 lines)
 - Frontmatter `description` field (max 1024 chars, third person, includes trigger words):
   ```
@@ -56,7 +56,7 @@ All paths are relative to `/home/didi/workspace/Code/git-report/git-snitch/`.
 - Skills reference `@git-snitch/core` types (CommitRecord, CommitClassification, ContributorSummary, etc.) for understanding data shapes but do NOT import or execute code
 
 **Outputs**:
-- Create: `git-snitch/.opencode/skills/repo-work-report/SKILL.md`
+- Create: `git-snitch/skills/repo-work-report/SKILL.md`
 
 **Validation**:
 - File exists and is valid Markdown
@@ -73,7 +73,7 @@ All paths are relative to `/home/didi/workspace/Code/git-report/git-snitch/`.
 ### Sub-phase 1.2: worklog Skill
 
 **Requirements**:
-- Create directory `git-snitch/.opencode/skills/worklog/`
+- Create directory `git-snitch/skills/worklog/`
 - Create `SKILL.md` (single file, must be under 100 lines)
 - Frontmatter `description`:
   ```
@@ -95,7 +95,7 @@ All paths are relative to `/home/didi/workspace/Code/git-report/git-snitch/`.
   - **Output Format**: Markdown with H1 (time range), H2 themed sections, repo names as bold inline markers, commit references as `repo:abc1234`, stats table at bottom (repo | commits | additions | deletions)
 
 **Outputs**:
-- Create: `git-snitch/.opencode/skills/worklog/SKILL.md`
+- Create: `git-snitch/skills/worklog/SKILL.md`
 
 **Validation**:
 - File exists and is valid Markdown
@@ -111,7 +111,7 @@ All paths are relative to `/home/didi/workspace/Code/git-report/git-snitch/`.
 ### Sub-phase 1.3: changelog Skill
 
 **Requirements**:
-- Create directory `git-snitch/.opencode/skills/changelog/`
+- Create directory `git-snitch/skills/changelog/`
 - Create `SKILL.md` (single file, must be under 100 lines)
 - Frontmatter `description`:
   ```
@@ -134,7 +134,7 @@ All paths are relative to `/home/didi/workspace/Code/git-report/git-snitch/`.
   - **Output Format**: Markdown following Keep a Changelog — H2: [version] - YYYY-MM-DD, H3: Added/Changed/Fixed/Removed/Deprecated/Security, bullet entries starting with imperative verb, commit hash references in parentheses
 
 **Outputs**:
-- Create: `git-snitch/.opencode/skills/changelog/SKILL.md`
+- Create: `git-snitch/skills/changelog/SKILL.md`
 
 **Validation**:
 - File exists and is valid Markdown
@@ -150,7 +150,7 @@ All paths are relative to `/home/didi/workspace/Code/git-report/git-snitch/`.
 ### Sub-phase 1.4: devlog Skill (2 files)
 
 **Requirements**:
-- Create directory `git-snitch/.opencode/skills/devlog/`
+- Create directory `git-snitch/skills/devlog/`
 - Create `SKILL.md` (must be under 100 lines, references REFERENCES.md)
 - Create `REFERENCES.md` (holds expanded not-ai-writer vocabulary and structure rules)
 
@@ -183,8 +183,8 @@ Crafts a natural, human-sounding devlog article from repository work data and ex
 - **Good Opening Line Patterns**: Specific technical observation, emotional reaction, scene-setting, direct claim, question
 
 **Outputs**:
-- Create: `git-snitch/.opencode/skills/devlog/SKILL.md`
-- Create: `git-snitch/.opencode/skills/devlog/REFERENCES.md`
+- Create: `git-snitch/skills/devlog/SKILL.md`
+- Create: `git-snitch/skills/devlog/REFERENCES.md`
 
 **Validation**:
 - Both files exist and are valid Markdown
@@ -755,7 +755,7 @@ Overall success requires:
 - `pnpm turbo check-types` passes from repo root
 - `pnpm turbo build` passes from repo root
 - `pnpm turbo test` passes from repo root
-- 5 skill files exist under `.opencode/skills/`
+- 5 skill files exist under `skills/`
 - `git-snitch worklog --help` shows correct options
 - `git-snitch repo --help` shows `--worklog-*` options
 - `git-snitch scan --help` shows `--worklog-*` options

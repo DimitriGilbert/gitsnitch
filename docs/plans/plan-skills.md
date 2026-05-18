@@ -2,9 +2,9 @@
 
 ## 1. Where Skills Live in the Repo
 
-**Base path:** `/home/didi/workspace/Code/git-report/git-snitch/.opencode/skills/`
+**Base path:** `/home/didi/workspace/Code/git-report/git-snitch/skills/`
 
-These are project-local skills shipped inside the repo. Opencode discovers project-local skills from `.opencode/skills/` within the working directory. Each skill is a directory containing at minimum a `SKILL.md`.
+These are project-local skills shipped inside the repo. Opencode discovers project-local skills from `skills/` within the working directory. Each skill is a directory containing at minimum a `SKILL.md`.
 
 ```
 git-snitch/
@@ -33,7 +33,7 @@ Following the write-a-skill guidance:
 ### Skill 1: repo-work-report
 
 ```
-.opencode/skills/repo-work-report/
+skills/repo-work-report/
 └── SKILL.md
 ```
 
@@ -42,7 +42,7 @@ Single file. The not-ai-writer directives are embedded inline (vocabulary bans, 
 ### Skill 2: worklog
 
 ```
-.opencode/skills/worklog/
+skills/worklog/
 └── SKILL.md
 ```
 
@@ -51,7 +51,7 @@ Single file. Aggregation logic is straightforward enough to keep in one file.
 ### Skill 3: changelog
 
 ```
-.opencode/skills/changelog/
+skills/changelog/
 └── SKILL.md
 ```
 
@@ -60,7 +60,7 @@ Single file. Changelog format rules and not-ai-writer directives are concise.
 ### Skill 4: devlog
 
 ```
-.opencode/skills/devlog/
+skills/devlog/
 ├── SKILL.md
 └── REFERENCES.md
 ```
@@ -415,11 +415,11 @@ Rotating list - never repeat the same pattern:
 ## 4. Every File to Create with Full Paths
 
 ```
-/home/didi/workspace/Code/git-report/git-snitch/.opencode/skills/repo-work-report/SKILL.md
-/home/didi/workspace/Code/git-report/git-snitch/.opencode/skills/worklog/SKILL.md
-/home/didi/workspace/Code/git-report/git-snitch/.opencode/skills/changelog/SKILL.md
-/home/didi/workspace/Code/git-report/git-snitch/.opencode/skills/devlog/SKILL.md
-/home/didi/workspace/Code/git-report/git-snitch/.opencode/skills/devlog/REFERENCES.md
+/home/didi/workspace/Code/git-report/git-snitch/skills/repo-work-report/SKILL.md
+/home/didi/workspace/Code/git-report/git-snitch/skills/worklog/SKILL.md
+/home/didi/workspace/Code/git-report/git-snitch/skills/changelog/SKILL.md
+/home/didi/workspace/Code/git-report/git-snitch/skills/devlog/SKILL.md
+/home/didi/workspace/Code/git-report/git-snitch/skills/devlog/REFERENCES.md
 ```
 
 **Total: 5 files across 4 skill directories.**
@@ -429,12 +429,12 @@ Rotating list - never repeat the same pattern:
 ## 5. Implementation Phases
 
 ### Phase 1: Create directory structure
-Create the `.opencode/skills/` directory and all four skill directories:
+Create the `skills/` directory and all four skill directories:
 ```
-.opencode/skills/repo-work-report/
-.opencode/skills/worklog/
-.opencode/skills/changelog/
-.opencode/skills/devlog/
+skills/repo-work-report/
+skills/worklog/
+skills/changelog/
+skills/devlog/
 ```
 
 ### Phase 2: Implement repo-work-report skill
@@ -493,7 +493,7 @@ Write both `devlog/SKILL.md` and `devlog/REFERENCES.md`:
 
 ## Key Design Decisions
 
-1. **Skills are project-local** at `.opencode/skills/` inside the git-snitch repo, not in global paths. They ship with the repo.
+1. **Skills are project-local** at `skills/` inside the git-snitch repo, not in global paths. They ship with the repo.
 
 2. **No utility scripts** - these are instruction-only skills. The agent runs git commands directly, uses the `@git-snitch/core` package types for understanding data shapes, and produces markdown output. No deterministic operations need saved scripts.
 
