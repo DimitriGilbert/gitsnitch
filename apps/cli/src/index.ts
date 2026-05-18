@@ -12,6 +12,8 @@ import {
 } from "@git-snitch/core";
 import { buildStandaloneReportHtml } from "@git-snitch/renderer/build";
 
+import { runWorklogCommand } from "./worklog-command.js";
+
 import type { GitSnitchConfigOverrides, RepoReportOptions, ScanOptions } from "@git-snitch/core";
 
 export interface PackageMetadata {
@@ -107,6 +109,34 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--exclude <pattern>", "Additional directory glob to exclude", collectValues, [])
     .action(async (directory: string, options: ScanCommandOptions, command: Command) => {
       await runScanCommand(directory, normalizeOverwriteOption(options, command), { io, opener });
+    });
+
+  program
+    .command("worklog")
+    .description("Generate an AI-powered work log from a git-snitch export file.")
+    .argument("<exportFile>", "Path to a git-snitch JSON export file")
+    .option("-o, --output <path>", "Output file path for the generated work log")
+    .option("--prompt <text>", "Override the default AI prompt")
+    .option("--harness <kind>", "AI harness to use", parseHarnessOption, "opencode")
+    .option("--executor <kind>", "Alias for --harness", parseHarnessOption)
+    .option("-e <kind>", "Alias for --harness", parseHarnessOption)
+    .option("--model <name>", "Override the default AI model")
+    .option("--skill <name>", "Skill template to use", parseSkillOption)
+    .action(async (exportFile: string, options: Record<string, unknown>) => {
+      const resolvedHarness = (options.harness ?? options.executor ?? options.e ?? "opencode") as string;
+      await runWorklogCommand(
+        exportFile,
+        {
+          output: options.output as string | undefined,
+          prompt: options.prompt as string | undefined,
+          harness: resolvedHarness,
+          executor: undefined,
+          e: undefined,
+          model: options.model as string | undefined,
+          skill: options.skill as string | undefined,
+        },
+        { io, opener },
+      );
     });
 
   return program;
@@ -259,6 +289,22 @@ function parseNonNegativeInteger(value: string): number {
   return parsed;
 }
 
+function parseHarnessOption(value: string): string {
+  const valid = ["opencode", "pi", "codex"];
+  if (!valid.includes(value)) {
+    throw new InvalidArgumentError(`Expected one of: ${valid.join(", ")}.`);
+  }
+  return value;
+}
+
+function parseSkillOption(value: string): string {
+  const valid = ["repo-log", "work-log", "changelog", "devlog"];
+  if (!valid.includes(value)) {
+    throw new InvalidArgumentError(`Expected one of: ${valid.join(", ")}.`);
+  }
+  return value;
+}
+
 function collectValues(value: string, previous: readonly string[]): readonly string[] {
   return [...previous, value];
 }
@@ -298,7 +344,7 @@ function isCommanderHelpOrVersion(error: unknown): boolean {
 
 function formatCliError(error: unknown): string {
   if (typeof error === "object" && error !== null && "code" in error && error.code === "commander.unknownCommand") {
-    return "Unknown command. Use only `git-snitch repo` or `git-snitch scan`. Run `git-snitch --help` for usage.";
+    return "Unknown command. Use `git-snitch repo`, `git-snitch scan`, or `git-snitch worklog`. Run `git-snitch --help` for usage.";
   }
   return error instanceof Error ? error.message : "Unknown CLI error.";
 }

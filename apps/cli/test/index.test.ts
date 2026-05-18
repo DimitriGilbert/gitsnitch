@@ -397,7 +397,7 @@ describe("cli package entrypoint", () => {
     const legacyAlias = createBufferedOutput();
     const legacyAliasCode = await runCli(["snitch", repoPath], { io: legacyAlias.io });
     expect(legacyAliasCode).toBe(1);
-    expect(legacyAlias.stderr()).toContain("Use only `git-snitch repo` or `git-snitch scan`");
+    expect(legacyAlias.stderr()).toContain("Use `git-snitch repo`, `git-snitch scan`, or `git-snitch worklog`");
 
     const brokenTemplatePath = join(workspace, "broken.tsx");
     await writeFile(brokenTemplatePath, "export const templates = { overview: () => <section>broken</section ", "utf8");
