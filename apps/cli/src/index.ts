@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 
 import { Command, InvalidArgumentError } from "commander";
@@ -129,7 +130,7 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .argument("<exportFile>", "Path to a git-snitch JSON export file")
     .option("-o, --output <path>", "Output file path for the generated work log")
     .option("--prompt <text>", "Override the default AI prompt")
-    .option("--harness <kind>", "AI harness to use", parseHarnessOption, "opencode")
+    .option("--harness <kind>", "AI harness to use", parseHarnessOption)
     .option("--executor <kind>", "Alias for --harness", parseHarnessOption)
     .option("-e <kind>", "Alias for --harness", parseHarnessOption)
     .option("--model <name>", "Override the default AI model")
@@ -421,6 +422,7 @@ async function openFile(filePath: string): Promise<void> {
   const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
   const args = process.platform === "win32" ? ["/c", "start", "", filePath] : [filePath];
   const child = spawn(command, args, { detached: true, stdio: "ignore" });
+  child.on("error", () => {});
   child.unref();
 }
 
@@ -440,7 +442,7 @@ function formatCliError(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown CLI error.";
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const exitCode = await runCli(process.argv.slice(2));
   process.exitCode = exitCode;
 }
