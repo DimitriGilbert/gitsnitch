@@ -126,6 +126,7 @@ export {
   createHarness,
   generateWorklog,
   getSkillDefinitions,
+  renderWorklogHtml,
   resolveSkillPrompt,
   WORKLOG_HARNESSES,
 } from "./worklog/index.js";

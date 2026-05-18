@@ -7,14 +7,17 @@ import { Command, InvalidArgumentError } from "commander";
 import {
   generateRepoReport,
   generateScanReport,
+  generateWorklog,
   loadGitSnitchConfig,
   mergeGitSnitchConfig,
+  renderWorklogHtml,
+  worklogOptionsSchema,
 } from "@git-snitch/core";
 import { buildStandaloneReportHtml } from "@git-snitch/renderer/build";
 
 import { runWorklogCommand } from "./worklog-command.js";
 
-import type { GitSnitchConfigOverrides, RepoReportOptions, ScanOptions } from "@git-snitch/core";
+import type { GitSnitchConfigOverrides, RepoReportOptions, ScanOptions, WorklogOptions } from "@git-snitch/core";
 
 export interface PackageMetadata {
   readonly name: "@git-snitch/cli";
@@ -89,6 +92,11 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--until <iso>", "Only include commits until an ISO 8601 UTC date")
     .option("--branch <ref>", "Branch or ref to include", collectValues, [])
     .option("--all-branches", "Include local and remote refs")
+    .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
+    .option("--worklog-harness <string>", "AI harness: opencode, pi, or codex", parseHarnessOption)
+    .option("--worklog-model <string>", "Override default model for the AI harness")
+    .option("--worklog-skill <string>", "AI skill for the harness", parseSkillOption)
+    .option("--worklog-output <path>", "Output file path for the worklog document")
     .action(async (repoPath: string, options: RepoCommandOptions, command: Command) => {
       await runRepoCommand(repoPath, normalizeRepoCommandOptions(options, command), { io, opener });
     });
@@ -107,6 +115,11 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--period <duration>", "Scan period such as 7d, 4w, 3m, or 1y")
     .option("--max-depth <number>", "Maximum recursive discovery depth", parseNonNegativeInteger)
     .option("--exclude <pattern>", "Additional directory glob to exclude", collectValues, [])
+    .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
+    .option("--worklog-harness <string>", "AI harness: opencode, pi, or codex", parseHarnessOption)
+    .option("--worklog-model <string>", "Override default model for the AI harness")
+    .option("--worklog-skill <string>", "AI skill for the harness", parseSkillOption)
+    .option("--worklog-output <path>", "Output file path for the worklog document")
     .action(async (directory: string, options: ScanCommandOptions, command: Command) => {
       await runScanCommand(directory, normalizeOverwriteOption(options, command), { io, opener });
     });
@@ -144,7 +157,8 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
 
 export async function runCli(argv: readonly string[], dependencies: CliDependencies = {}): Promise<number> {
   try {
-    await createProgram(dependencies).parseAsync(["node", "git-snitch", ...argv], { from: "node" });
+    const rewritten = rewriteWorklogAliases(argv);
+    await createProgram(dependencies).parseAsync(["node", "git-snitch", ...rewritten], { from: "node" });
     return 0;
   } catch (error) {
     const io = dependencies.io ?? defaultIo;
@@ -180,6 +194,26 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
   };
 
   const report = await generateRepoReport(reportOptions);
+
+  const worklogOpts = resolveWorklogOptions(options as Record<string, unknown>, config.worklog);
+  if (worklogOpts !== undefined) {
+    if (options.json) {
+      dependencies.io.stderr("Warning: Both --json and worklog options provided. Worklog output takes precedence.\n");
+    }
+    const result = await generateWorklog(report, worklogOpts);
+    const html = renderWorklogHtml(result);
+    const worklogPath = resolve(
+      worklogOpts.outputPath ?? deterministicWorklogPath("repo", report.repository.name),
+    );
+    await mkdir(dirname(worklogPath), { recursive: true });
+    await writeFile(worklogPath, html, "utf8");
+    dependencies.io.stdout(`Wrote worklog ${worklogPath}\n`);
+    if (shouldOpenReport) {
+      await dependencies.opener(worklogPath);
+    }
+    return;
+  }
+
   if (reportOptions.format === "json") {
     dependencies.io.stdout(`${JSON.stringify(report, null, 2)}\n`);
     return;
@@ -215,6 +249,25 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
     period: options.period,
     scan: scanOptions,
   });
+
+  const worklogOpts = resolveWorklogOptions(options as Record<string, unknown>, config.worklog);
+  if (worklogOpts !== undefined) {
+    if (options.json) {
+      dependencies.io.stderr("Warning: Both --json and worklog options provided. Worklog output takes precedence.\n");
+    }
+    const result = await generateWorklog(report, worklogOpts);
+    const html = renderWorklogHtml(result);
+    const worklogPath = resolve(
+      worklogOpts.outputPath ?? deterministicWorklogPath("scan", basename(resolvedDirectory)),
+    );
+    await mkdir(dirname(worklogPath), { recursive: true });
+    await writeFile(worklogPath, html, "utf8");
+    dependencies.io.stdout(`Wrote worklog ${worklogPath}\n`);
+    if (shouldOpenReport) {
+      await dependencies.opener(worklogPath);
+    }
+    return;
+  }
 
   if (format === "json") {
     dependencies.io.stdout(`${JSON.stringify(report, null, 2)}\n`);
@@ -307,6 +360,45 @@ function parseSkillOption(value: string): string {
 
 function collectValues(value: string, previous: readonly string[]): readonly string[] {
   return [...previous, value];
+}
+
+export function rewriteWorklogAliases(argv: readonly string[]): string[] {
+  const aliasMap: ReadonlyMap<string, string> = new Map([
+    ["--wl-prompt", "--worklog-prompt"],
+    ["--wl-harness", "--worklog-harness"],
+    ["--wl-model", "--worklog-model"],
+    ["--wl-skill", "--worklog-skill"],
+    ["--wl-output", "--worklog-output"],
+  ]);
+  return argv.map((arg) => aliasMap.get(arg) ?? arg);
+}
+
+function resolveWorklogOptions(
+  options: Record<string, unknown>,
+  configWorklog: { prompt?: string; harness?: string; model?: string; skill?: string; outputPath?: string },
+): WorklogOptions | undefined {
+  const hasAnyWorklogOption =
+    options.worklogPrompt !== undefined ||
+    options.worklogHarness !== undefined ||
+    options.worklogModel !== undefined ||
+    options.worklogSkill !== undefined ||
+    options.worklogOutput !== undefined;
+
+  if (!hasAnyWorklogOption) {
+    return undefined;
+  }
+
+  return worklogOptionsSchema.parse({
+    prompt: options.worklogPrompt ?? configWorklog.prompt,
+    harness: options.worklogHarness ?? configWorklog.harness,
+    model: options.worklogModel ?? configWorklog.model,
+    skill: options.worklogSkill ?? configWorklog.skill,
+    outputPath: options.worklogOutput ?? configWorklog.outputPath,
+  });
+}
+
+function deterministicWorklogPath(kind: "repo" | "scan", name: string): string {
+  return `git-snitch-worklog-${kind}-${name.replace(/[^a-z0-9]+/gi, "-")}.html`;
 }
 
 function normalizeOverwriteOption<Options extends SharedCommandOptions>(options: Options, command: Command): Options {

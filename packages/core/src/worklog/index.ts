@@ -24,5 +24,6 @@ export async function generateWorklog(report: ReportData, options: WorklogOption
 
 export { createHarness } from "./harnesses/index.js";
 export { buildWorklogPrompt, getSkillDefinitions, resolveSkillPrompt } from "./prompts.js";
+export { renderWorklogHtml } from "./render.js";
 export type { AiHarness, HarnessCallOptions, WorklogHarness, WorklogOptions, WorklogResult, WorklogSkillName } from "./types.js";
 export { WORKLOG_HARNESSES } from "./types.js";

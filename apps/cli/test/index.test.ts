@@ -4,9 +4,22 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { promisify } from "node:util";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { cliPackageMetadata, runCli } from "../src/index";
+import { cliPackageMetadata, rewriteWorklogAliases, runCli } from "../src/index";
+
+vi.mock("@git-snitch/core", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@git-snitch/core")>();
+  return {
+    ...original,
+    generateWorklog: vi.fn().mockResolvedValue({
+      markdown: "# Mocked Worklog\n\nMocked worklog content from AI.",
+      harness: "opencode",
+      model: "default",
+      generatedAt: "2024-06-15T12:00:00.000Z",
+    }),
+  };
+});
 
 const execFileAsync = promisify(execFile);
 
@@ -407,6 +420,115 @@ describe("cli package entrypoint", () => {
     });
     expect(brokenTemplateCode).toBe(1);
     expect(brokenTemplate.stderr()).toContain("Unable to compile report renderer with template");
+  }, 120_000);
+
+  it("activates worklog mode on repo with --worklog-prompt", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "worklog-repo", "Worklog fixture commit");
+    const worklogOutput = join(workspace, "worklog-repo.html");
+    const { generateWorklog } = await import("@git-snitch/core");
+
+    const output = createBufferedOutput();
+    const code = await runCli(["repo", repoPath, "--worklog-prompt", "Summarize activity", "--worklog-output", worklogOutput], { io: output.io });
+
+    expect(code, output.stderr()).toBe(0);
+    expect(generateWorklog).toHaveBeenCalledOnce();
+    const html = await readFile(worklogOutput, "utf8");
+    expect(html).toContain("<!doctype html>");
+    expect(html).toContain("Mocked Worklog");
+    vi.mocked(generateWorklog).mockClear();
+  }, 120_000);
+
+  it("activates worklog mode on scan with --worklog-prompt", async () => {
+    const workspace = await createTempDirectory();
+    await mkdir(join(workspace, "wl-scan-group"), { recursive: true });
+    await createFixtureRepo(join(workspace, "wl-scan-group"), "wl-repo", "Scan worklog commit");
+    const worklogOutput = join(workspace, "scan-worklog.html");
+    const { generateWorklog } = await import("@git-snitch/core");
+
+    const output = createBufferedOutput();
+    const code = await runCli(["scan", join(workspace, "wl-scan-group"), "--worklog-prompt", "Summarize scan", "--worklog-output", worklogOutput], { io: output.io });
+
+    expect(code, output.stderr()).toBe(0);
+    expect(generateWorklog).toHaveBeenCalledOnce();
+    const html = await readFile(worklogOutput, "utf8");
+    expect(html).toContain("<!doctype html>");
+    expect(html).toContain("Mocked Worklog");
+    vi.mocked(generateWorklog).mockClear();
+  }, 120_000);
+
+  it("--wl-prompt alias resolves to --worklog-prompt", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "alias-repo", "Alias fixture commit");
+    const worklogOutput = join(workspace, "alias-worklog.html");
+    const { generateWorklog } = await import("@git-snitch/core");
+
+    const output = createBufferedOutput();
+    const code = await runCli(["repo", repoPath, "--wl-prompt", "Alias prompt", "--wl-output", worklogOutput], { io: output.io });
+
+    expect(code, output.stderr()).toBe(0);
+    expect(generateWorklog).toHaveBeenCalledOnce();
+    const html = await readFile(worklogOutput, "utf8");
+    expect(html).toContain("Mocked Worklog");
+    vi.mocked(generateWorklog).mockClear();
+  }, 120_000);
+
+  it("--worklog-harness invalid produces error", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "bad-harness-repo", "Bad harness commit");
+    const output = createBufferedOutput();
+
+    const code = await runCli(["repo", repoPath, "--worklog-harness", "invalid"], { io: output.io });
+
+    expect(code).toBe(1);
+    expect(output.stderr()).toContain("Expected one of");
+  });
+
+  it("--worklog-skill invalid produces error", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "bad-skill-repo", "Bad skill commit");
+    const output = createBufferedOutput();
+
+    const code = await runCli(["repo", repoPath, "--worklog-skill", "invalid"], { io: output.io });
+
+    expect(code).toBe(1);
+    expect(output.stderr()).toContain("Expected one of");
+  });
+
+  it("rewriteWorklogAliases maps all 5 aliases", () => {
+    const input = ["--wl-prompt", "p", "--wl-harness", "h", "--wl-model", "m", "--wl-skill", "s", "--wl-output", "o"];
+    const result = rewriteWorklogAliases(input);
+
+    expect(result).toEqual([
+      "--worklog-prompt", "p",
+      "--worklog-harness", "h",
+      "--worklog-model", "m",
+      "--worklog-skill", "s",
+      "--worklog-output", "o",
+    ]);
+  });
+
+  it("when worklog mode active, normal HTML is NOT generated", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "no-html-repo", "No HTML commit");
+    const worklogOutput = join(workspace, "no-html-worklog.html");
+    const normalOutput = join(workspace, "normal-report.html");
+
+    const output = createBufferedOutput();
+    const code = await runCli(["repo", repoPath, "--output", normalOutput, "--worklog-prompt", "test", "--worklog-output", worklogOutput], { io: output.io });
+
+    expect(code, output.stderr()).toBe(0);
+    expect(output.stdout()).toContain("Wrote worklog");
+    const worklogHtml = await readFile(worklogOutput, "utf8");
+    expect(worklogHtml).toContain("Mocked Worklog");
+    let normalExists: boolean;
+    try {
+      await readFile(normalOutput, "utf8");
+      normalExists = true;
+    } catch {
+      normalExists = false;
+    }
+    expect(normalExists).toBe(false);
   }, 120_000);
 });
 
