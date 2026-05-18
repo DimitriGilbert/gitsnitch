@@ -6,7 +6,7 @@ export class PiHarness implements AiHarness {
   public readonly name = "pi";
 
   public async generate(prompt: string, options: HarnessCallOptions): Promise<string> {
-    const args: string[] = ["-p", prompt];
+    const args: string[] = [];
 
     if (options.model !== undefined && options.model.length > 0) {
       args.push("--model", options.model);
@@ -14,11 +14,20 @@ export class PiHarness implements AiHarness {
 
     return new Promise<string>((resolve, reject) => {
       const child = spawn("pi", args, {
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       const stdoutChunks: Buffer[] = [];
       const stderrChunks: Buffer[] = [];
+      let settled = false;
+
+      const timeoutMs = options.timeout ?? 120_000;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        child.kill();
+        reject(new Error(`pi CLI timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
 
       child.stdout.on("data", (chunk: Buffer) => {
         stdoutChunks.push(chunk);
@@ -29,6 +38,9 @@ export class PiHarness implements AiHarness {
       });
 
       child.on("error", (error: Error) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
         reject(
           new Error(
             `pi CLI not found: ${error.message}. Install pi or use --harness opencode`,
@@ -37,6 +49,9 @@ export class PiHarness implements AiHarness {
       });
 
       child.on("close", (code) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
         const stderr = Buffer.concat(stderrChunks).toString("utf8").trim();
 
         if (code !== 0) {
@@ -54,6 +69,10 @@ export class PiHarness implements AiHarness {
 
         resolve(stdout);
       });
+
+      child.stdin.on("error", () => {});
+      child.stdin.write(prompt);
+      child.stdin.end();
     });
   }
 }

@@ -27,4 +27,5 @@ export interface AiHarness {
 export interface HarnessCallOptions {
   readonly model?: string;
   readonly skill?: WorklogSkillName;
+  readonly timeout?: number;
 }

@@ -73,7 +73,7 @@ export async function generateScanReport(
     exclude: parsedOptions.scan.excludePatterns,
   });
 
-  const allProjects = await Promise.all(
+  const settled = await Promise.allSettled(
     discovered.map(async (repository): Promise<ScanProjectReport> => {
       const report = await generateRepoReport(
         {
@@ -88,6 +88,20 @@ export async function generateScanReport(
       };
     }),
   );
+
+  for (const [index, result] of settled.entries()) {
+    if (result.status === "rejected") {
+      const repository = discovered[index]!;
+      console.warn(`Skipping repository ${repository.path}: ${String(result.reason)}`);
+    }
+  }
+
+  const allProjects = settled
+    .filter(
+      (result): result is PromiseFulfilledResult<ScanProjectReport> =>
+        result.status === "fulfilled",
+    )
+    .map((result) => result.value);
 
   const projects = allProjects.filter((project) => project.report.repository.totalCommits > 0);
 

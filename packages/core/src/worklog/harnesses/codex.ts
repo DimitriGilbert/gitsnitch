@@ -6,7 +6,7 @@ export class CodexHarness implements AiHarness {
   public readonly name = "codex";
 
   public async generate(prompt: string, options: HarnessCallOptions): Promise<string> {
-    const args: string[] = ["exec", prompt];
+    const args: string[] = ["exec"];
 
     if (options.model !== undefined && options.model.length > 0) {
       args.push("-m", options.model);
@@ -14,11 +14,20 @@ export class CodexHarness implements AiHarness {
 
     return new Promise<string>((resolve, reject) => {
       const child = spawn("codex", args, {
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       const stdoutChunks: Buffer[] = [];
       const stderrChunks: Buffer[] = [];
+      let settled = false;
+
+      const timeoutMs = options.timeout ?? 120_000;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        child.kill();
+        reject(new Error(`codex CLI timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
 
       child.stdout.on("data", (chunk: Buffer) => {
         stdoutChunks.push(chunk);
@@ -29,6 +38,9 @@ export class CodexHarness implements AiHarness {
       });
 
       child.on("error", (error: Error) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
         reject(
           new Error(
             `codex CLI not found: ${error.message}. Install codex or use --harness opencode`,
@@ -37,6 +49,9 @@ export class CodexHarness implements AiHarness {
       });
 
       child.on("close", (code) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
         const stderr = Buffer.concat(stderrChunks).toString("utf8").trim();
 
         if (code !== 0) {
@@ -54,6 +69,10 @@ export class CodexHarness implements AiHarness {
 
         resolve(stdout);
       });
+
+      child.stdin.on("error", () => {});
+      child.stdin.write(prompt);
+      child.stdin.end();
     });
   }
 }

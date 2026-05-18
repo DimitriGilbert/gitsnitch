@@ -6,7 +6,7 @@ export class OpencodeHarness implements AiHarness {
   public readonly name = "opencode";
 
   public async generate(prompt: string, options: HarnessCallOptions): Promise<string> {
-    const args: string[] = ["--prompt", prompt, "--non-interactive"];
+    const args: string[] = ["--non-interactive"];
 
     if (options.model !== undefined && options.model.length > 0) {
       args.push("--model", options.model);
@@ -14,11 +14,20 @@ export class OpencodeHarness implements AiHarness {
 
     return new Promise<string>((resolve, reject) => {
       const child = spawn("opencode", args, {
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       const stdoutChunks: Buffer[] = [];
       const stderrChunks: Buffer[] = [];
+      let settled = false;
+
+      const timeoutMs = options.timeout ?? 120_000;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        child.kill();
+        reject(new Error(`opencode CLI timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
 
       child.stdout.on("data", (chunk: Buffer) => {
         stdoutChunks.push(chunk);
@@ -29,10 +38,16 @@ export class OpencodeHarness implements AiHarness {
       });
 
       child.on("error", (error: Error) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
         reject(new Error(`Failed to spawn opencode CLI: ${error.message}`));
       });
 
       child.on("close", (code) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
         const stderr = Buffer.concat(stderrChunks).toString("utf8").trim();
 
         if (code !== 0) {
@@ -50,6 +65,10 @@ export class OpencodeHarness implements AiHarness {
 
         resolve(stdout);
       });
+
+      child.stdin.on("error", () => {});
+      child.stdin.write(prompt);
+      child.stdin.end();
     });
   }
 }
