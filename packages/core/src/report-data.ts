@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { ReportAnonymizationMeta } from "./anonymize.js";
 import type { RepositoryAnalysis, ScanAnalysis } from "./analysis.js";
 import type { CommitRecord } from "./commits.js";
 import type { ContributorSummary } from "./contributors.js";
@@ -16,6 +17,7 @@ export interface RepoReportData {
   readonly commits: readonly CommitRecord[];
   readonly contributors: readonly ContributorSummary[];
   readonly analysis: RepositoryAnalysis;
+  readonly anonymization?: ReportAnonymizationMeta;
 }
 
 export interface ScanProjectReport {
@@ -30,11 +32,18 @@ export interface ScanReportData {
   readonly options: ScanReportOptions;
   readonly projects: readonly ScanProjectReport[];
   readonly analysis: ScanAnalysis;
+  readonly anonymization?: ReportAnonymizationMeta;
 }
 
 export type ReportData = RepoReportData | ScanReportData;
 
 export const reportKindSchema = z.enum(["repo", "scan"]);
+
+const reportAnonymizationMetaSchema: z.ZodType<ReportAnonymizationMeta> = z.object({
+  applied: z.boolean(),
+  flags: z.array(z.string()),
+  salt: z.string(),
+});
 
 export const reportDataDiscriminantSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("repo"), generatedAt: isoDateStringSchema }),
@@ -214,6 +223,7 @@ export const repoReportDataSchema: z.ZodType<RepoReportData> = z.object({
   commits: z.array(commitRecordSchema),
   contributors: z.array(contributorSummarySchema),
   analysis: repositoryAnalysisSchema,
+  anonymization: reportAnonymizationMetaSchema.optional(),
 });
 
 const scanProjectReportSchema: z.ZodType<ScanProjectReport> = z.object({
@@ -228,6 +238,7 @@ export const scanReportDataSchema: z.ZodType<ScanReportData> = z.object({
   options: scanReportOptionsSchema,
   projects: z.array(scanProjectReportSchema),
   analysis: scanAnalysisSchema,
+  anonymization: reportAnonymizationMetaSchema.optional(),
 });
 
 export function isRepoReportData(report: unknown): report is RepoReportData {

@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 
 import { Command, InvalidArgumentError } from "commander";
 import {
+  anonymizeReport,
   generateRepoReport,
   generateScanReport,
   generateWorklog,
@@ -224,15 +225,23 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
 
   const report = await generateRepoReport(reportOptions, { noGitHub: config.noGitHub });
 
+  let finalReport = report;
+  if (config.anon !== undefined) {
+    const { report: anonReport, meta } = anonymizeReport(report, config.anon);
+    if (anonReport.kind === "repo") {
+      finalReport = { ...anonReport, anonymization: meta };
+    }
+  }
+
   const worklogOpts = resolveWorklogOptions(options as Record<string, unknown>, config.worklog);
   if (worklogOpts !== undefined) {
     if (options.json) {
       dependencies.io.stderr("Warning: Both --json and worklog options provided. Worklog output takes precedence.\n");
     }
-    const result = await generateWorklog(report, worklogOpts);
+    const result = await generateWorklog(finalReport, worklogOpts);
     const html = renderWorklogHtml(result);
     const worklogPath = resolve(
-      worklogOpts.outputPath ?? deterministicWorklogPath("repo", report.repository.name),
+      worklogOpts.outputPath ?? deterministicWorklogPath("repo", finalReport.repository.name),
     );
     await mkdir(dirname(worklogPath), { recursive: true });
     await writeFile(worklogPath, html, "utf8");
@@ -244,12 +253,12 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
   }
 
   if (reportOptions.format === "json") {
-    dependencies.io.stdout(`${JSON.stringify(report, null, 2)}\n`);
+    dependencies.io.stdout(`${JSON.stringify(finalReport, null, 2)}\n`);
     return;
   }
 
-  const outputPath = resolve(reportOptions.outputPath ?? deterministicOutputPath("repo", report.repository.name));
-  await writeHtmlReport({ outputPath, overwrite: reportOptions.overwrite, templatePath: reportOptions.templatePath, report });
+  const outputPath = resolve(reportOptions.outputPath ?? deterministicOutputPath("repo", finalReport.repository.name));
+  await writeHtmlReport({ outputPath, overwrite: reportOptions.overwrite, templatePath: reportOptions.templatePath, report: finalReport });
   dependencies.io.stdout(`Wrote ${outputPath}\n`);
   if (shouldOpenReport) {
     await dependencies.opener(outputPath);
@@ -281,12 +290,20 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
     noGitHub: config.noGitHub,
   }, { noGitHub: config.noGitHub });
 
+  let finalReport = report;
+  if (config.anon !== undefined) {
+    const { report: anonReport, meta } = anonymizeReport(report, config.anon);
+    if (anonReport.kind === "scan") {
+      finalReport = { ...anonReport, anonymization: meta };
+    }
+  }
+
   const worklogOpts = resolveWorklogOptions(options as Record<string, unknown>, config.worklog);
   if (worklogOpts !== undefined) {
     if (options.json) {
       dependencies.io.stderr("Warning: Both --json and worklog options provided. Worklog output takes precedence.\n");
     }
-    const result = await generateWorklog(report, worklogOpts);
+    const result = await generateWorklog(finalReport, worklogOpts);
     const html = renderWorklogHtml(result);
     const worklogPath = resolve(
       worklogOpts.outputPath ?? deterministicWorklogPath("scan", basename(resolvedDirectory)),
@@ -301,12 +318,12 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
   }
 
   if (format === "json") {
-    dependencies.io.stdout(`${JSON.stringify(report, null, 2)}\n`);
+    dependencies.io.stdout(`${JSON.stringify(finalReport, null, 2)}\n`);
     return;
   }
 
   const outputPath = resolve(options.output ?? config.report.outputPath ?? deterministicOutputPath("scan", basename(resolvedDirectory)));
-  await writeHtmlReport({ outputPath, overwrite: config.report.overwrite, templatePath: options.template ?? config.report.templatePath, report });
+  await writeHtmlReport({ outputPath, overwrite: config.report.overwrite, templatePath: options.template ?? config.report.templatePath, report: finalReport });
   dependencies.io.stdout(`Wrote ${outputPath}\n`);
   if (shouldOpenReport) {
     await dependencies.opener(outputPath);
