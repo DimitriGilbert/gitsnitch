@@ -59,6 +59,14 @@ export type {
   TemplateExportHelpers,
   TemplateRouteId,
 } from "./templates.js";
+export type {
+  AiHarness,
+  HarnessCallOptions,
+  WorklogHarness,
+  WorklogOptions,
+  WorklogResult,
+  WorklogSkillName,
+} from "./worklog/index.js";
 
 export {
   GitSnitchConfigError,
@@ -76,6 +84,7 @@ export {
   scanPeriodOptionsSchema,
   scanOptionsSchema,
   scanReportOptionsSchema,
+  worklogOptionsSchema,
 } from "./options.js";
 export { generateRepoReport, generateScanReport, GitSnitchReportError, parseScanPeriod } from "./report.js";
 export { isRepoReportData, isScanReportData, reportDataDiscriminantSchema, reportKindSchema } from "./report-data.js";
@@ -112,3 +121,11 @@ export {
   generateHealthRecommendations,
   getHealthScoreRating,
 } from "./quality-metrics.js";
+export {
+  buildWorklogPrompt,
+  createHarness,
+  generateWorklog,
+  getSkillDefinitions,
+  resolveSkillPrompt,
+  WORKLOG_HARNESSES,
+} from "./worklog/index.js";

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import type { IsoDateString } from "./json.js";
 
+import { WORKLOG_HARNESSES } from "./worklog/types.js";
+
 export const DEFAULT_SCAN_MAX_DEPTH = 3;
 
 export const DEFAULT_SCAN_INCLUDE_PATTERNS = ["**/.git"] as const;
@@ -99,4 +101,12 @@ export const repoReportOptionsSchema = repoReportOptionsObjectSchema
 export const scanReportOptionsSchema = reportOptionsSchema.extend({
   directory: z.string().min(1),
   scan: scanOptionsSchema.default(defaultScanOptions),
+});
+
+export const worklogOptionsSchema = z.object({
+  prompt: z.string().min(1).optional(),
+  harness: z.enum(WORKLOG_HARNESSES).default("opencode"),
+  model: z.string().min(1).optional(),
+  skill: z.enum(["repo-log", "work-log", "changelog", "devlog"]).optional(),
+  outputPath: z.string().min(1).optional(),
 });

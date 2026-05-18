@@ -10,6 +10,7 @@ import {
   repoReportOptionsObjectSchema,
   scanOptionsSchema,
 } from "./options.js";
+import { WORKLOG_HARNESSES } from "./worklog/types.js";
 
 const defaultScanConfig = {
   maxDepth: DEFAULT_SCAN_MAX_DEPTH,
@@ -21,6 +22,10 @@ const defaultReportConfig = {
   overwrite: true,
   open: false,
   format: "html" as const,
+};
+
+const defaultWorklogConfig = {
+  harness: "opencode" as const,
 };
 
 export const gitSnitchConfigSchema = z
@@ -36,8 +41,17 @@ export const gitSnitchConfigSchema = z
         templatePath: z.string().min(1).optional(),
       })
       .default(defaultReportConfig),
+    worklog: z
+      .object({
+        prompt: z.string().min(1).optional(),
+        harness: z.enum(WORKLOG_HARNESSES).default("opencode"),
+        model: z.string().min(1).optional(),
+        skill: z.enum(["repo-log", "work-log", "changelog", "devlog"]).optional(),
+        outputPath: z.string().min(1).optional(),
+      })
+      .default(defaultWorklogConfig),
   })
-  .default({ repo: {}, scan: defaultScanConfig, report: defaultReportConfig });
+  .default({ repo: {}, scan: defaultScanConfig, report: defaultReportConfig, worklog: defaultWorklogConfig });
 
 export type GitSnitchConfig = z.infer<typeof gitSnitchConfigSchema>;
 
@@ -45,6 +59,7 @@ export interface GitSnitchConfigOverrides {
   readonly repo?: Partial<GitSnitchConfig["repo"]>;
   readonly scan?: Partial<GitSnitchConfig["scan"]>;
   readonly report?: Partial<GitSnitchConfig["report"]>;
+  readonly worklog?: Partial<GitSnitchConfig["worklog"]>;
 }
 
 export class GitSnitchConfigError extends Error {
@@ -104,6 +119,10 @@ export function mergeGitSnitchConfig(
     report: {
       ...base.report,
       ...definedProperties(overrides.report),
+    },
+    worklog: {
+      ...base.worklog,
+      ...definedProperties(overrides.worklog),
     },
   };
 
