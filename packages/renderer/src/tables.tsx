@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table";
 import type { FileHotspot, CommitRecord, ContributorSummary } from "@git-snitch/core";
 
+import { buildCommitUrl, buildFileUrl } from "./remote-urls.js";
 import { EmptyState } from "./empty-state.js";
 import { downloadCsv } from "./export.js";
 import type { CsvRow, DownloadResult } from "./export.js";
@@ -233,14 +234,15 @@ export type CommitsTableProps = {
   readonly commits: readonly CommitRecord[];
   readonly exportFilename?: string;
   readonly downloader?: CsvDownloader;
+  readonly remoteUrl?: string;
 };
 
-export function CommitsTable({ commits, exportFilename = "commits.csv", downloader }: CommitsTableProps) {
+export function CommitsTable({ commits, exportFilename = "commits.csv", downloader, remoteUrl }: CommitsTableProps) {
   return (
     <DataTable
       ariaLabel="Commits table"
       data={commits}
-      columns={commitColumns}
+      columns={buildCommitColumns(remoteUrl)}
       search={{ placeholder: "Search commits, authors, files", toText: commitSearchText }}
       emptyState={{ title: "No commits to show", description: "This report did not include commits for the selected repository and branch scope." }}
       exportConfig={{ filename: exportFilename, mapRow: commitToCsvRow, columns: commitCsvColumns, downloader }}
@@ -271,14 +273,16 @@ export type HotspotsTableProps = {
   readonly hotspots: readonly FileHotspot[];
   readonly exportFilename?: string;
   readonly downloader?: CsvDownloader;
+  readonly remoteUrl?: string;
+  readonly currentBranch?: string;
 };
 
-export function HotspotsTable({ hotspots, exportFilename = "hotspots.csv", downloader }: HotspotsTableProps) {
+export function HotspotsTable({ hotspots, exportFilename = "hotspots.csv", downloader, remoteUrl, currentBranch }: HotspotsTableProps) {
   return (
     <DataTable
       ariaLabel="Hotspots table"
       data={hotspots}
-      columns={hotspotColumns}
+      columns={buildHotspotColumns(remoteUrl, currentBranch)}
       search={{ placeholder: "Search files or contributors", toText: hotspotSearchText }}
       emptyState={{ title: "No hotspots to show", description: "This repository has no file churn data to rank yet." }}
       exportConfig={{ filename: exportFilename, mapRow: hotspotToCsvRow, columns: hotspotCsvColumns, downloader }}
@@ -320,45 +324,51 @@ function RiskBadge({ level }: { readonly level: FileHotspot["riskLevel"]["level"
   );
 }
 
-const commitColumns: ColumnDef<CommitRecord>[] = [
-  {
-    accessorKey: "shortHash",
-    header: "Commit",
-    cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.original.shortHash}</span>,
-  },
-  {
-    accessorKey: "message",
-    header: "Message",
-    cell: ({ row }) => <span className="block max-w-xl truncate font-medium text-foreground">{row.original.message}</span>,
-  },
-  {
-    accessorFn: (commit) => commit.author.name,
-    id: "author",
-    header: "Author",
-  },
-  {
-    accessorKey: "classification",
-    header: "Type",
-    cell: ({ row }) => <span className="capitalize">{row.original.classification}</span>,
-  },
-  {
-    accessorFn: (commit) => commitAdditions(commit),
-    id: "additions",
-    header: "Additions",
-    cell: ({ row }) => numberCell(commitAdditions(row.original)),
-  },
-  {
-    accessorFn: (commit) => commitDeletions(commit),
-    id: "deletions",
-    header: "Deletions",
-    cell: ({ row }) => numberCell(commitDeletions(row.original)),
-  },
-  {
-    accessorKey: "authoredAt",
-    header: "Authored",
-    cell: ({ row }) => formatDate(row.original.authoredAt),
-  },
-];
+function buildCommitColumns(remoteUrl?: string): ColumnDef<CommitRecord>[] {
+  return [
+    {
+      accessorKey: "shortHash",
+      header: "Commit",
+      cell: ({ row }) => {
+        const url = buildCommitUrl(remoteUrl, row.original.hash);
+        const inner = <span className="font-mono text-xs text-muted-foreground">{row.original.shortHash}</span>;
+        return url ? <a href={url} target="_blank" rel="noopener noreferrer">{inner}</a> : inner;
+      },
+    },
+    {
+      accessorKey: "message",
+      header: "Message",
+      cell: ({ row }) => <span className="block max-w-xl truncate font-medium text-foreground">{row.original.message}</span>,
+    },
+    {
+      accessorFn: (commit) => commit.author.name,
+      id: "author",
+      header: "Author",
+    },
+    {
+      accessorKey: "classification",
+      header: "Type",
+      cell: ({ row }) => <span className="capitalize">{row.original.classification}</span>,
+    },
+    {
+      accessorFn: (commit) => commitAdditions(commit),
+      id: "additions",
+      header: "Additions",
+      cell: ({ row }) => numberCell(commitAdditions(row.original)),
+    },
+    {
+      accessorFn: (commit) => commitDeletions(commit),
+      id: "deletions",
+      header: "Deletions",
+      cell: ({ row }) => numberCell(commitDeletions(row.original)),
+    },
+    {
+      accessorKey: "authoredAt",
+      header: "Authored",
+      cell: ({ row }) => formatDate(row.original.authoredAt),
+    },
+  ];
+}
 
 const contributorColumns: ColumnDef<ContributorSummary>[] = [
   { accessorKey: "name", header: "Contributor", cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span> },
@@ -370,15 +380,25 @@ const contributorColumns: ColumnDef<ContributorSummary>[] = [
   { accessorKey: "lastCommitAt", header: "Last seen", cell: ({ row }) => formatDate(row.original.lastCommitAt) },
 ];
 
-const hotspotColumns: ColumnDef<FileHotspot>[] = [
-  { accessorKey: "path", header: "File", cell: ({ row }) => <span className="font-mono text-xs text-foreground">{row.original.path}</span> },
-  { accessorKey: "riskLevel.level", header: "Risk", cell: ({ row }) => <RiskBadge level={row.original.riskLevel.level} /> },
-  { accessorKey: "hotspotScore", header: "Score", cell: ({ row }) => numberCell(row.original.hotspotScore) },
-  { accessorKey: "changeCount", header: "Changes", cell: ({ row }) => numberCell(row.original.changeCount) },
-  { accessorKey: "churn", header: "Churn", cell: ({ row }) => numberCell(row.original.churn) },
-  { accessorKey: "contributorCount", header: "Contributors", cell: ({ row }) => numberCell(row.original.contributorCount) },
-  { accessorKey: "lastChangedAt", header: "Last changed", cell: ({ row }) => formatDate(row.original.lastChangedAt) },
-];
+function buildHotspotColumns(remoteUrl?: string, currentBranch?: string): ColumnDef<FileHotspot>[] {
+  return [
+    {
+      accessorKey: "path",
+      header: "File",
+      cell: ({ row }) => {
+        const url = buildFileUrl(remoteUrl, currentBranch, row.original.path);
+        const inner = <span className="font-mono text-xs text-foreground">{row.original.path}</span>;
+        return url ? <a href={url} target="_blank" rel="noopener noreferrer">{inner}</a> : inner;
+      },
+    },
+    { accessorKey: "riskLevel.level", header: "Risk", cell: ({ row }) => <RiskBadge level={row.original.riskLevel.level} /> },
+    { accessorKey: "hotspotScore", header: "Score", cell: ({ row }) => numberCell(row.original.hotspotScore) },
+    { accessorKey: "changeCount", header: "Changes", cell: ({ row }) => numberCell(row.original.changeCount) },
+    { accessorKey: "churn", header: "Churn", cell: ({ row }) => numberCell(row.original.churn) },
+    { accessorKey: "contributorCount", header: "Contributors", cell: ({ row }) => numberCell(row.original.contributorCount) },
+    { accessorKey: "lastChangedAt", header: "Last changed", cell: ({ row }) => formatDate(row.original.lastChangedAt) },
+  ];
+}
 
 const commitCsvColumns = ["hash", "message", "author", "email", "classification", "additions", "deletions", "authoredAt", "files"] as const;
 const contributorCsvColumns = ["name", "email", "commitCount", "additions", "deletions", "filesChanged", "firstCommitAt", "lastCommitAt"] as const;

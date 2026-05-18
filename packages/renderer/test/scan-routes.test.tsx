@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RepoReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
 
@@ -158,9 +158,9 @@ describe("scan report routes", () => {
 
     expect(screen.getByRole("heading", { name: "Scan overview" })).toBeTruthy();
     expect(screen.getByText("Repositories")).toBeTruthy();
-    expect(screen.getByText("Project comparison")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "services/api" }).getAttribute("href")).toMatch(/^#\/scan\/projects\/services-api-[a-z0-9]+$/);
-    expect(screen.getByText("Cross-project contributors")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Project comparison" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "api" }).getAttribute("href")).toMatch(/^#\/scan\/projects\/services-api-[a-z0-9]+$/);
+    expect(screen.getByRole("region", { name: "Cross-project contributors" })).toBeTruthy();
     expect(screen.getByText("Ada Lovelace")).toBeTruthy();
     expect(screen.queryByText("Grace Hopper")).toBeNull();
   });
@@ -182,7 +182,7 @@ describe("scan report routes", () => {
     expect(screen.getByText(/max depth, include patterns, and exclude patterns/i)).toBeTruthy();
   });
 
-  it("renders a per-project drill-down using repository overview evidence", () => {
+  it("renders a per-project drill-down with the shared repo route tabs", () => {
     const report = multiProjectScanReport();
     const entry = deriveScanProjectRouteEntries(report).at(0);
 
@@ -196,6 +196,16 @@ describe("scan report routes", () => {
     expect(screen.getByRole("link", { name: "Back to scan overview" }).getAttribute("href")).toBe("#/scan");
     expect(screen.getByText("Commit streak")).toBeTruthy();
     expect(screen.getByText("Commit activity")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Charts" }));
+    expect(screen.getByRole("heading", { name: "Charts" })).toBeTruthy();
+    expect(screen.getByText("Cadence and churn")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Quality" }));
+    expect(screen.getByText("Repository health score")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Commits" }));
+    expect(screen.getByRole("heading", { name: "Commits ledger" })).toBeTruthy();
   });
 
   it("renders route mismatch states instead of crashing", () => {
@@ -243,9 +253,9 @@ describe("scan report shell navigation", () => {
 
     await waitFor(() => expect(window.location.hash).toBe("#/scan"));
 
-    expect(await screen.findByRole("heading", { name: "/workspace", level: 1 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Scan report", level: 1 })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Scan Overview", current: "page" }).getAttribute("href")).toBe("#/scan");
     const navigation = screen.getByRole("navigation", { name: "Report sections" });
-    expect(within(navigation).getByRole("link", { name: "services/api" }).getAttribute("href")).toBe(deriveScanProjectRouteEntries(report).at(0)?.href);
+    expect(within(navigation).getByRole("link", { name: "api" }).getAttribute("href")).toBe(deriveScanProjectRouteEntries(report).at(0)?.href);
   });
 });

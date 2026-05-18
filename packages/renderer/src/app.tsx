@@ -159,7 +159,7 @@ function ReportRootLayout() {
   }
 
   const report = state.report;
-  const title = report.kind === "repo" ? report.repository.name : report.directory;
+  const title = report.kind === "repo" ? report.repository.name : "Scan report";
   const scanNavigationItems = report.kind === "scan"
     ? [
         { label: "Scan Overview", href: "#/scan", current: pathname === "/scan", disabled: false },

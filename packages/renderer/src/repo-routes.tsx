@@ -256,7 +256,7 @@ export function CommitsRoute({ report, jsonDownloader }: RepoRouteProps) {
         action={hasCommits ? <JsonExportButton filename={repoFilename(report, "commits.json")} rows={jsonRows} downloader={jsonDownloader} /> : undefined}
       />
       {hasCommits ? <CommitsSummary commits={report.commits} /> : null}
-      <CommitsTable commits={report.commits} exportFilename={repoFilename(report, "commits.csv")} />
+      <CommitsTable commits={report.commits} exportFilename={repoFilename(report, "commits.csv")} remoteUrl={report.repository.remoteUrl} />
     </div>
   );
 }

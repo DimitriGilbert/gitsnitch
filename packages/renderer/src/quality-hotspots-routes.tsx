@@ -334,7 +334,7 @@ export function HotspotsRoute({ report }: RepoRouteProps) {
         </div>
       </section>
       {hotspots.length > 0 ? <RiskIndicators hotspots={hotspots} /> : null}
-      <HotspotsTable hotspots={hotspots} exportFilename={repoFilename(report, "hotspots.csv")} />
+      <HotspotsTable hotspots={hotspots} exportFilename={repoFilename(report, "hotspots.csv")} remoteUrl={report.repository.remoteUrl} currentBranch={report.repository.currentBranch} />
     </div>
   );
 }

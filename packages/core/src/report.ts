@@ -73,7 +73,7 @@ export async function generateScanReport(
     exclude: parsedOptions.scan.excludePatterns,
   });
 
-  const projects = await Promise.all(
+  const allProjects = await Promise.all(
     discovered.map(async (repository): Promise<ScanProjectReport> => {
       const report = await generateRepoReport(
         {
@@ -88,6 +88,8 @@ export async function generateScanReport(
       };
     }),
   );
+
+  const projects = allProjects.filter((project) => project.report.repository.totalCommits > 0);
 
   return {
     kind: "scan",

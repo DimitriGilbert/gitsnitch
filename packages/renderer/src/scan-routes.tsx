@@ -1,10 +1,15 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@git-snitch/ui/components/table";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 import type { ContributorSummary, RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
+import { cn } from "@git-snitch/ui/lib/utils";
 
+import { ChartsRoute } from "./charts-route.js";
 import { EmptyState } from "./empty-state.js";
 import { StatsGrid } from "./layout.js";
 import { RepoOverview } from "./overview.js";
+import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes.js";
+import { CommitsRoute, ContributorsRoute } from "./repo-routes.js";
+import { DataTable } from "./tables.js";
 
 type ScanRouteProps = {
   readonly report: ReportData;
@@ -27,6 +32,17 @@ type ContributorAggregate = {
 
 type MutableContributorAggregate = Omit<ContributorAggregate, "projectCount"> & {
   readonly projectKeys: Set<string>;
+};
+
+type ProjectComparisonRow = {
+  readonly slug: string;
+  readonly href: string;
+  readonly label: string;
+  readonly remoteUrl: string | undefined;
+  readonly commits: number;
+  readonly contributors: number;
+  readonly churn: number;
+  readonly lastCommitAt: string | undefined;
 };
 
 export type ScanProjectRouteEntry = {
@@ -69,6 +85,13 @@ function slugBase(value: string) {
   return slug.length > 0 ? slug : "project";
 }
 
+function formatDate(isoDate: string | undefined): string {
+  if (isoDate === undefined) {
+    return "Not available";
+  }
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(isoDate));
+}
+
 export function deriveScanProjectSlug(project: ScanProjectReport) {
   const source = `${project.repository.id}|${project.repository.relativePath}|${project.repository.name}`;
   return `${slugBase(project.repository.id || project.repository.relativePath || project.repository.name)}-${stableHash(source)}`;
@@ -82,7 +105,7 @@ export function deriveScanProjectRouteEntries(report: ScanReportData): readonly 
       project,
       slug,
       href: `#/scan/projects/${slug}`,
-      label: project.repository.relativePath || project.repository.name,
+      label: project.repository.name,
     };
   });
 }
@@ -157,13 +180,58 @@ export function deriveCrossProjectContributors(report: ScanReportData): readonly
     .sort((left, right) => right.commitCount - left.commitCount || right.projectCount - left.projectCount || left.name.localeCompare(right.name));
 }
 
+const projectComparisonColumns: ColumnDef<ProjectComparisonRow>[] = [
+  {
+    accessorKey: "label",
+    header: "Project",
+    cell: ({ row }) => (
+      <div>
+        <a className="font-medium text-foreground underline-offset-4 hover:underline" href={row.original.href}>
+          {row.original.label}
+        </a>
+        {row.original.remoteUrl ? (
+          <a
+            className="mt-1 block text-xs text-muted-foreground hover:text-foreground"
+            href={row.original.remoteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View remote
+          </a>
+        ) : null}
+      </div>
+    ),
+  },
+  { accessorKey: "commits", header: "Commits", cell: ({ row }) => formatNumber(row.original.commits) },
+  { accessorKey: "contributors", header: "Contributors", cell: ({ row }) => formatNumber(row.original.contributors) },
+  { accessorKey: "churn", header: "Churn", cell: ({ row }) => formatNumber(row.original.churn) },
+  { accessorKey: "lastCommitAt", header: "Last commit", cell: ({ row }) => formatDate(row.original.lastCommitAt) },
+];
+
+const crossProjectContributorColumns: ColumnDef<ContributorAggregate>[] = [
+  {
+    accessorKey: "name",
+    header: "Contributor",
+    cell: ({ row }) => (
+      <div>
+        <span className="font-medium text-foreground">{row.original.name}</span>
+        <p className="mt-1 text-xs text-muted-foreground">{row.original.email}</p>
+      </div>
+    ),
+  },
+  { accessorKey: "projectCount", header: "Projects", cell: ({ row }) => formatNumber(row.original.projectCount) },
+  { accessorKey: "commitCount", header: "Commits", cell: ({ row }) => formatNumber(row.original.commitCount) },
+  { accessorKey: "additions", header: "Additions", cell: ({ row }) => formatNumber(row.original.additions) },
+  { accessorKey: "deletions", header: "Deletions", cell: ({ row }) => formatNumber(row.original.deletions) },
+];
+
 function ScanIntro({ report }: { readonly report: ScanReportData }) {
   return (
     <section className="grid grid-flow-dense gap-5 rounded-3xl border border-border/70 bg-card/80 p-6 shadow-sm md:grid-cols-[minmax(0,1fr)_18rem] md:items-end">
       <div className="max-w-4xl">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Scan overview</h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Evidence across {report.directory}: repository totals, comparable project rows, and contributors whose work spans more than one codebase.
+          Evidence across {report.projects.length} repositories: repository totals, comparable project rows, and contributors whose work spans more than one codebase.
         </p>
       </div>
       <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
@@ -178,100 +246,53 @@ function ScanIntro({ report }: { readonly report: ScanReportData }) {
 function ProjectComparison({ report }: { readonly report: ScanReportData }) {
   const entries = deriveScanProjectRouteEntries(report);
 
-  if (entries.length === 0) {
-    return (
-      <EmptyState
-        title="No repositories matched this scan"
-        description="git-snitch did not find repositories within the configured directory, max depth, include patterns, and exclude patterns. Widen the scan scope or check that the target directory contains Git repositories."
-      />
-    );
-  }
+  const rows: readonly ProjectComparisonRow[] = useMemo(
+    () =>
+      entries.map((entry) => ({
+        slug: entry.slug,
+        href: entry.href,
+        label: entry.label,
+        remoteUrl: entry.project.repository.remoteUrl,
+        commits: entry.project.report.commits.length,
+        contributors: entry.project.report.contributors.length,
+        churn: totalChurn(entry.project.report),
+        lastCommitAt: entry.project.repository.lastCommitAt,
+      })),
+    [entries],
+  );
 
   return (
-    <Card className="overflow-hidden shadow-none">
-      <CardHeader className="border-b border-border/60 bg-muted/25">
-        <CardTitle className="text-lg font-semibold tracking-tight text-foreground">Project comparison</CardTitle>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">Comparable repository rows with direct drill-down links into the original repo report evidence.</p>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Project</TableHead>
-              <TableHead>Commits</TableHead>
-              <TableHead>Contributors</TableHead>
-              <TableHead>Churn</TableHead>
-              <TableHead>Last commit</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((entry) => (
-              <TableRow key={entry.slug}>
-                <TableCell>
-                  <a className="font-medium text-foreground underline-offset-4 hover:underline" href={entry.href}>
-                    {entry.label}
-                  </a>
-                  <p className="mt-1 text-xs text-muted-foreground">{entry.project.repository.path}</p>
-                </TableCell>
-                <TableCell>{formatNumber(entry.project.report.commits.length)}</TableCell>
-                <TableCell>{formatNumber(entry.project.report.contributors.length)}</TableCell>
-                <TableCell>{formatNumber(totalChurn(entry.project.report))}</TableCell>
-                <TableCell>{entry.project.repository.lastCommitAt ?? "Not available"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <DataTable
+      ariaLabel="Project comparison"
+      data={rows}
+      columns={projectComparisonColumns}
+      search={{ placeholder: "Search projects", toText: (row) => `${row.label}` }}
+      emptyState={{
+        title: "No repositories matched this scan",
+        description: "git-snitch did not find repositories within the configured directory, max depth, include patterns, and exclude patterns. Widen the scan scope or check that the target directory contains Git repositories.",
+      }}
+    />
   );
 }
 
 function CrossProjectContributors({ report }: { readonly report: ScanReportData }) {
   const contributors = deriveCrossProjectContributors(report);
 
-  if (contributors.length === 0) {
-    return (
-      <EmptyState
-        title="No shared contributors across projects"
-        description="Each contributor identity currently appears in only one scanned repository. Shared contributor evidence will appear here once the same author email or name is present in more than one project."
-      />
-    );
-  }
-
   return (
-    <Card className="overflow-hidden shadow-none">
-      <CardHeader className="border-b border-border/60 bg-muted/25">
-        <CardTitle className="text-lg font-semibold tracking-tight text-foreground">Cross-project contributors</CardTitle>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">Author identities aggregated by email, then ranked by commits and project coverage.</p>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Contributor</TableHead>
-              <TableHead>Projects</TableHead>
-              <TableHead>Commits</TableHead>
-              <TableHead>Additions</TableHead>
-              <TableHead>Deletions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {contributors.slice(0, 10).map((contributor) => (
-              <TableRow key={contributor.key}>
-                <TableCell>
-                  <span className="font-medium text-foreground">{contributor.name}</span>
-                  <p className="mt-1 text-xs text-muted-foreground">{contributor.email}</p>
-                </TableCell>
-                <TableCell>{formatNumber(contributor.projectCount)}</TableCell>
-                <TableCell>{formatNumber(contributor.commitCount)}</TableCell>
-                <TableCell>{formatNumber(contributor.additions)}</TableCell>
-                <TableCell>{formatNumber(contributor.deletions)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <DataTable
+      ariaLabel="Cross-project contributors"
+      data={contributors}
+      columns={crossProjectContributorColumns}
+      search={{ placeholder: "Search contributors", toText: (row) => `${row.name} ${row.email}` }}
+      exportConfig={{
+        filename: "cross-project-contributors.csv",
+        mapRow: (row) => ({ name: row.name, email: row.email, projects: row.projectCount, commits: row.commitCount, additions: row.additions, deletions: row.deletions }),
+      }}
+      emptyState={{
+        title: "No shared contributors across projects",
+        description: "Each contributor identity currently appears in only one scanned repository. Shared contributor evidence will appear here once the same author email or name is present in more than one project.",
+      }}
+    />
   );
 }
 
@@ -286,6 +307,41 @@ export function ScanOverview({ report }: ScanRouteProps) {
       <StatsGrid stats={buildScanStats(report)} />
       <ProjectComparison report={report} />
       <CrossProjectContributors report={report} />
+    </div>
+  );
+}
+
+const scanProjectTabs = ["Overview", "Commits", "Contributors", "Charts", "Quality", "Hotspots"] as const;
+type ScanProjectTab = (typeof scanProjectTabs)[number];
+
+function ScanProjectTabs({ report }: { readonly report: RepoReportData }) {
+  const [activeTab, setActiveTab] = useState<ScanProjectTab>("Overview");
+
+  return (
+    <div className="grid gap-6">
+      <nav aria-label="Project sections" className="flex gap-1 rounded-xl border border-border/70 bg-muted/25 p-1">
+        {scanProjectTabs.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+              activeTab === tab
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+      {activeTab === "Overview" ? <RepoOverview report={report} /> : null}
+      {activeTab === "Commits" ? <CommitsRoute report={report} /> : null}
+      {activeTab === "Contributors" ? <ContributorsRoute report={report} /> : null}
+      {activeTab === "Charts" ? <ChartsRoute report={report} /> : null}
+      {activeTab === "Quality" ? <QualityRoute report={report} /> : null}
+      {activeTab === "Hotspots" ? <HotspotsRoute report={report} /> : null}
     </div>
   );
 }
@@ -306,20 +362,32 @@ export function ScanProjectRoute({ report, projectSlug }: ScanProjectRouteProps)
     );
   }
 
+  const repoReport = entry.project.report;
+
   return (
     <div className="grid gap-6">
       <section className="grid grid-flow-dense gap-4 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm sm:grid-cols-[1fr_auto] sm:items-start">
         <div className="max-w-4xl">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{entry.project.repository.name}</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Drill-down for {entry.project.repository.relativePath}. This view reuses the repository overview components against the scanned project's original report payload.
+            Drill-down for {entry.project.repository.name}. Overview, commits, contributors, charts, hotspots, and quality signals from the scanned project report.
           </p>
+          {entry.project.repository.remoteUrl ? (
+            <a
+              className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              href={entry.project.repository.remoteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View remote
+            </a>
+          ) : null}
         </div>
         <a className="text-sm font-medium text-foreground underline-offset-4 hover:underline" href="#/scan">
           Back to scan overview
         </a>
       </section>
-      <RepoOverview report={entry.project.report} />
+      <ScanProjectTabs report={repoReport} />
     </div>
   );
 }
