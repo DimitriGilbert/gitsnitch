@@ -93,10 +93,9 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--branch <ref>", "Branch or ref to include", collectValues, [])
     .option("--all-branches", "Include local and remote refs")
     .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
-    .option("--worklog-harness <string>", "AI harness: opencode", parseHarnessOption)
+    .option("--worklog-harness <string>", "AI harness: opencode, pi, codex", parseHarnessOption)
     .option("--worklog-model <string>", "Override default model for the AI harness")
     .option("--worklog-skill <string>", "AI skill for the harness", parseSkillOption)
-    .option("--worklog-output <path>", "Output file path for the worklog document")
     .action(async (repoPath: string, options: RepoCommandOptions, command: Command) => {
       await runRepoCommand(repoPath, normalizeRepoCommandOptions(options, command), { io, opener });
     });
@@ -116,7 +115,7 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--max-depth <number>", "Maximum recursive discovery depth", parseNonNegativeInteger)
     .option("--exclude <pattern>", "Additional directory glob to exclude", collectValues, [])
     .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
-    .option("--worklog-harness <string>", "AI harness: opencode", parseHarnessOption)
+    .option("--worklog-harness <string>", "AI harness: opencode, pi, codex", parseHarnessOption)
     .option("--worklog-model <string>", "Override default model for the AI harness")
     .option("--worklog-skill <string>", "AI skill for the harness", parseSkillOption)
     .option("--worklog-output <path>", "Output file path for the worklog document")
@@ -343,7 +342,7 @@ function parseNonNegativeInteger(value: string): number {
 }
 
 function parseHarnessOption(value: string): string {
-  const valid = ["opencode"];
+  const valid = ["opencode", "pi", "codex"];
   if (!valid.includes(value)) {
     throw new InvalidArgumentError(`Expected one of: ${valid.join(", ")}.`);
   }

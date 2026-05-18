@@ -1,4 +1,4 @@
-export const WORKLOG_HARNESSES = ["opencode"] as const;
+export const WORKLOG_HARNESSES = ["opencode", "pi", "codex"] as const;
 
 export type WorklogHarness = (typeof WORKLOG_HARNESSES)[number];
 

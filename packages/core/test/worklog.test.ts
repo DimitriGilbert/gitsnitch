@@ -61,6 +61,16 @@ describe("worklogOptionsSchema", () => {
     const result = worklogOptionsSchema.safeParse({ harness: "opencode" });
     expect(result.success).toBe(true);
   });
+
+  it("accepts valid pi harness", () => {
+    const result = worklogOptionsSchema.safeParse({ harness: "pi" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts valid codex harness", () => {
+    const result = worklogOptionsSchema.safeParse({ harness: "codex" });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("buildWorklogPrompt", () => {
@@ -149,6 +159,20 @@ describe("createHarness", () => {
     const harness = createHarness("opencode");
 
     expect(harness.name).toBe("opencode");
+    expect(typeof harness.generate).toBe("function");
+  });
+
+  it("returns valid harness for pi", () => {
+    const harness = createHarness("pi");
+
+    expect(harness.name).toBe("pi");
+    expect(typeof harness.generate).toBe("function");
+  });
+
+  it("returns valid harness for codex", () => {
+    const harness = createHarness("codex");
+
+    expect(harness.name).toBe("codex");
     expect(typeof harness.generate).toBe("function");
   });
 
