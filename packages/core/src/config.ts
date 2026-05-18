@@ -7,9 +7,11 @@ import {
   DEFAULT_SCAN_EXCLUDE_PATTERNS,
   DEFAULT_SCAN_INCLUDE_PATTERNS,
   DEFAULT_SCAN_MAX_DEPTH,
+  anonOptionsSchema,
   repoReportOptionsObjectSchema,
   scanOptionsSchema,
 } from "./options.js";
+import type { AnonOptions } from "./options.js";
 import { WORKLOG_HARNESSES } from "./worklog/types.js";
 
 const defaultScanConfig = {
@@ -30,7 +32,7 @@ const defaultWorklogConfig = {
 
 export const gitSnitchConfigSchema = z
   .object({
-    repo: repoReportOptionsObjectSchema.omit({ repoPath: true }).partial().default({}),
+    repo: repoReportOptionsObjectSchema.omit({ repoPath: true, anon: true, noGitHub: true }).partial().default({}),
     scan: scanOptionsSchema.default(defaultScanConfig),
     report: z
       .object({
@@ -50,6 +52,8 @@ export const gitSnitchConfigSchema = z
         outputPath: z.string().min(1).optional(),
       })
       .default(defaultWorklogConfig),
+    anon: anonOptionsSchema.optional(),
+    noGitHub: z.boolean().optional(),
   })
   .default({ repo: {}, scan: defaultScanConfig, report: defaultReportConfig, worklog: defaultWorklogConfig });
 
@@ -60,6 +64,8 @@ export interface GitSnitchConfigOverrides {
   readonly scan?: Partial<GitSnitchConfig["scan"]>;
   readonly report?: Partial<GitSnitchConfig["report"]>;
   readonly worklog?: Partial<GitSnitchConfig["worklog"]>;
+  readonly anon?: AnonOptions;
+  readonly noGitHub?: boolean;
 }
 
 export class GitSnitchConfigError extends Error {
@@ -124,6 +130,8 @@ export function mergeGitSnitchConfig(
       ...base.worklog,
       ...definedProperties(overrides.worklog),
     },
+    anon: overrides.anon ?? base.anon,
+    noGitHub: overrides.noGitHub ?? base.noGitHub,
   };
 
   const parsed = gitSnitchConfigSchema.safeParse(merged);

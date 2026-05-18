@@ -38,7 +38,7 @@ export type { CommitAuthor, CommitClassification, CommitFileChange, CommitRecord
 export type { GitSnitchConfig, GitSnitchConfigOverrides } from "./config.js";
 export type { ContributorIdentity, ContributorSummary } from "./contributors.js";
 export type { IsoDateString, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./json.js";
-export type { RepoReportOptions, ReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions } from "./options.js";
+export type { RepoReportOptions, ReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions, AnonOptions } from "./options.js";
 export type { GenerateScanReportOptions, ReportGenerationDependencies } from "./report.js";
 export type { RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "./report-data.js";
 export type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos.js";
@@ -83,6 +83,7 @@ export {
   DEFAULT_SCAN_EXCLUDE_PATTERNS,
   DEFAULT_SCAN_INCLUDE_PATTERNS,
   DEFAULT_SCAN_MAX_DEPTH,
+  anonOptionsSchema,
   isoDateStringSchema,
   repoReportOptionsSchema,
   scanPeriodOptionsSchema,

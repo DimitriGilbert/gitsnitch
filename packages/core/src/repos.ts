@@ -1,3 +1,4 @@
+import type { GitHubRepoMeta } from "./git/github.js";
 import type { IsoDateString } from "./json.js";
 
 export interface RepositoryIdentity {
@@ -13,6 +14,7 @@ export interface RepositorySummary extends RepositoryIdentity {
   readonly lastCommitAt?: IsoDateString;
   readonly totalCommits: number;
   readonly totalContributors: number;
+  readonly github?: GitHubRepoMeta;
 }
 
 export interface ScannedRepositorySummary extends RepositorySummary {

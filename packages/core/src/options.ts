@@ -22,6 +22,16 @@ const defaultScanOptions = {
   excludePatterns: [...DEFAULT_SCAN_EXCLUDE_PATTERNS],
 };
 
+export interface AnonOptions {
+  readonly hideNames?: boolean;
+  readonly hideEmails?: boolean;
+  readonly hidePaths?: boolean;
+  readonly hideUrls?: boolean;
+  readonly hashCommits?: boolean;
+  readonly hideMessages?: boolean;
+  readonly obfuscateKey?: string;
+}
+
 export interface ReportOptions {
   readonly outputPath?: string;
   readonly overwrite: boolean;
@@ -30,6 +40,8 @@ export interface ReportOptions {
   readonly since?: IsoDateString;
   readonly until?: IsoDateString;
   readonly templatePath?: string;
+  readonly anon?: AnonOptions;
+  readonly noGitHub?: boolean;
 }
 
 export interface ScanOptions {
@@ -71,6 +83,16 @@ export const scanOptionsSchema = z.object({
   excludePatterns: patternListSchema.default([...DEFAULT_SCAN_EXCLUDE_PATTERNS]),
 });
 
+export const anonOptionsSchema = z.object({
+  hideNames: z.boolean().optional(),
+  hideEmails: z.boolean().optional(),
+  hidePaths: z.boolean().optional(),
+  hideUrls: z.boolean().optional(),
+  hashCommits: z.boolean().optional(),
+  hideMessages: z.boolean().optional(),
+  obfuscateKey: z.string().min(1).optional(),
+});
+
 const reportOptionsSchema = z.object({
   outputPath: z.string().min(1).optional(),
   overwrite: z.boolean().default(true),
@@ -79,6 +101,8 @@ const reportOptionsSchema = z.object({
   since: isoDateStringSchema.optional(),
   until: isoDateStringSchema.optional(),
   templatePath: z.string().min(1).optional(),
+  anon: anonOptionsSchema.optional(),
+  noGitHub: z.boolean().optional(),
 });
 
 export const scanPeriodOptionsSchema = z.object({

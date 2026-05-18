@@ -2,6 +2,7 @@ import { relative } from "node:path";
 
 import type { RepositoryAnalysis, ScanAnalysis } from "./analysis.js";
 import type { CommitRecord } from "./commits.js";
+import type { GitHubRepoMeta } from "./git/github.js";
 import type { IsoDateString } from "./json.js";
 import type { RepoReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions } from "./options.js";
 import type { RepoReportData, ScanProjectReport, ScanReportData } from "./report-data.js";
@@ -14,6 +15,7 @@ import { aggregateContributors, generateContributorStats } from "./analysis.js";
 import { findFileHotspots } from "./hotspots.js";
 import { DEFAULT_SCAN_EXCLUDE_PATTERNS, repoReportOptionsSchema, scanReportOptionsSchema } from "./options.js";
 import { discoverGitRepositories } from "./git/discovery.js";
+import { fetchGitHubRepoMeta } from "./git/github.js";
 import { getGitCommits } from "./git/log.js";
 import { countLinesOfCode } from "./git/loc.js";
 import { getCurrentBranch, getRepositoryInfo } from "./git/repository.js";
@@ -22,6 +24,7 @@ import { createGitCommandRunner } from "./git/runner.js";
 export interface ReportGenerationDependencies {
   readonly runner?: AsyncCommandRunner;
   readonly generatedAt?: IsoDateString;
+  readonly noGitHub?: boolean;
 }
 
 export interface GenerateScanReportOptions extends Omit<ScanReportOptions, "scan">, ScanPeriodOptions {
@@ -46,12 +49,15 @@ export async function generateRepoReport(
   const commits = await getClassifiedCommits({ ...parsedOptions, ...branchOptions }, runner);
   const loc = await countLinesOfCode(parsedOptions.repoPath, { exclude: DEFAULT_SCAN_EXCLUDE_PATTERNS });
   const repositoryInfo = await getRepositoryInfo({ repoPath: parsedOptions.repoPath, runner });
+  const github = !dependencies.noGitHub && repositoryInfo.remoteUrl
+    ? await fetchGitHubRepoMeta(repositoryInfo.remoteUrl, runner)
+    : undefined;
   const contributors = generateContributorStats(commits);
 
   return {
     kind: "repo",
     generatedAt: dependencies.generatedAt ?? new Date().toISOString(),
-    repository: summarizeRepository(repositoryInfo, commits, contributors.length),
+    repository: summarizeRepository(repositoryInfo, commits, contributors.length, github),
     options: { ...parsedOptions, ...branchOptions },
     commits,
     contributors,
@@ -80,7 +86,7 @@ export async function generateScanReport(
           ...repoOptionsFromScanOptions(parsedOptions, repository.path),
           allBranches: true,
         },
-        { runner, generatedAt },
+        { runner, generatedAt, noGitHub: dependencies.noGitHub },
       );
       return {
         repository: summarizeScannedRepository(report.repository, repository.relativePath),
@@ -225,6 +231,7 @@ function summarizeRepository(
   identity: RepositoryIdentity,
   commits: readonly CommitRecord[],
   totalContributors: number,
+  github?: GitHubRepoMeta,
 ): RepositorySummary {
   const sorted = [...commits].sort((left, right) => new Date(left.authoredAt).getTime() - new Date(right.authoredAt).getTime());
   const first = sorted.at(0);
@@ -235,6 +242,7 @@ function summarizeRepository(
     ...(last ? { lastCommitAt: last.authoredAt } : {}),
     totalCommits: commits.length,
     totalContributors,
+    ...(github !== undefined ? { github } : {}),
   };
 }
 

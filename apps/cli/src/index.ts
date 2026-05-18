@@ -18,7 +18,7 @@ import { buildStandaloneReportHtml } from "@git-snitch/renderer/build";
 
 import { runWorklogCommand } from "./worklog-command.js";
 
-import type { GitSnitchConfigOverrides, RepoReportOptions, ScanOptions, WorklogOptions } from "@git-snitch/core";
+import type { AnonOptions, GitSnitchConfigOverrides, RepoReportOptions, ScanOptions, WorklogOptions } from "@git-snitch/core";
 
 export interface PackageMetadata {
   readonly name: "@git-snitch/cli";
@@ -52,6 +52,15 @@ interface SharedCommandOptions {
   readonly template?: string;
   readonly since?: string;
   readonly until?: string;
+  readonly anon?: boolean;
+  readonly hideNames?: boolean;
+  readonly hideEmails?: boolean;
+  readonly hidePaths?: boolean;
+  readonly hideUrls?: boolean;
+  readonly hashCommits?: boolean;
+  readonly hideMessages?: boolean;
+  readonly obfuscateKey?: string;
+  readonly github?: boolean;
 }
 
 interface RepoCommandOptions extends SharedCommandOptions {
@@ -93,6 +102,15 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--until <iso>", "Only include commits until an ISO 8601 UTC date")
     .option("--branch <ref>", "Branch or ref to include", collectValues, [])
     .option("--all-branches", "Include local and remote refs")
+    .option("--anon", "Enable full anonymization (shorthand for all --hide-* flags)")
+    .option("--hide-names", "Replace author/contributor names with pseudonyms")
+    .option("--hide-emails", "Replace emails with pseudonyms")
+    .option("--hide-paths", "Hash file paths")
+    .option("--hide-urls", "Remove remote URLs")
+    .option("--hash-commits", "Replace commit hashes")
+    .option("--hide-messages", "Replace commit messages with classification")
+    .option("--obfuscate-key <string>", "Secret key for deterministic hashing")
+    .option("--no-github", "Skip GitHub API calls")
     .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
     .option("--worklog-harness <string>", "AI harness: opencode, pi, codex", parseHarnessOption)
     .option("--worklog-model <string>", "Override default model for the AI harness")
@@ -115,6 +133,15 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--period <duration>", "Scan period such as 7d, 4w, 3m, or 1y")
     .option("--max-depth <number>", "Maximum recursive discovery depth", parseNonNegativeInteger)
     .option("--exclude <pattern>", "Additional directory glob to exclude", collectValues, [])
+    .option("--anon", "Enable full anonymization (shorthand for all --hide-* flags)")
+    .option("--hide-names", "Replace author/contributor names with pseudonyms")
+    .option("--hide-emails", "Replace emails with pseudonyms")
+    .option("--hide-paths", "Hash file paths")
+    .option("--hide-urls", "Remove remote URLs")
+    .option("--hash-commits", "Replace commit hashes")
+    .option("--hide-messages", "Replace commit messages with classification")
+    .option("--obfuscate-key <string>", "Secret key for deterministic hashing")
+    .option("--no-github", "Skip GitHub API calls")
     .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
     .option("--worklog-harness <string>", "AI harness: opencode, pi, codex", parseHarnessOption)
     .option("--worklog-model <string>", "Override default model for the AI harness")
@@ -188,12 +215,14 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
     since: options.since ?? config.repo.since,
     until: options.until ?? config.repo.until,
     templatePath: options.template ?? config.report.templatePath,
+    anon: config.anon,
+    noGitHub: config.noGitHub,
     repoPath: resolvedRepoPath,
     branches,
     allBranches,
   };
 
-  const report = await generateRepoReport(reportOptions);
+  const report = await generateRepoReport(reportOptions, { noGitHub: config.noGitHub });
 
   const worklogOpts = resolveWorklogOptions(options as Record<string, unknown>, config.worklog);
   if (worklogOpts !== undefined) {
@@ -248,7 +277,9 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
     templatePath: options.template ?? config.report.templatePath,
     period: options.period,
     scan: scanOptions,
-  });
+    anon: config.anon,
+    noGitHub: config.noGitHub,
+  }, { noGitHub: config.noGitHub });
 
   const worklogOpts = resolveWorklogOptions(options as Record<string, unknown>, config.worklog);
   if (worklogOpts !== undefined) {
@@ -290,7 +321,38 @@ function buildSharedOverrides(options: SharedCommandOptions): GitSnitchConfigOve
       format: options.json ? "json" : undefined,
       templatePath: options.template,
     },
+    anon: buildAnonOverrides(options),
+    noGitHub: options.github === false ? true : undefined,
   };
+}
+
+function buildAnonOverrides(options: SharedCommandOptions): AnonOptions | undefined {
+  if (options.anon) {
+    return {
+      hideNames: true,
+      hideEmails: true,
+      hidePaths: true,
+      hideUrls: true,
+      hashCommits: true,
+      hideMessages: true,
+      obfuscateKey: options.obfuscateKey,
+    };
+  }
+
+  const anon: AnonOptions = {
+    hideNames: options.hideNames,
+    hideEmails: options.hideEmails,
+    hidePaths: options.hidePaths,
+    hideUrls: options.hideUrls,
+    hashCommits: options.hashCommits,
+    hideMessages: options.hideMessages,
+    obfuscateKey: options.obfuscateKey,
+  };
+
+  const hasAnyField = (Object.values(anon) as (boolean | string | undefined)[]).some(
+    (value) => value !== undefined,
+  );
+  return hasAnyField ? anon : undefined;
 }
 
 function buildScanOverrides(options: ScanCommandOptions): GitSnitchConfigOverrides["scan"] {

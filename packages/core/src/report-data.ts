@@ -61,6 +61,17 @@ const repositorySummaryShape = {
   lastCommitAt: isoDateStringSchema.optional(),
   totalCommits: z.number().int().nonnegative(),
   totalContributors: z.number().int().nonnegative(),
+  github: z.object({
+    description: z.string().optional(),
+    stars: z.number().optional(),
+    forks: z.number().optional(),
+    license: z.string().optional(),
+    topics: z.array(z.string()).optional(),
+    visibility: z.enum(["public", "private"]).optional(),
+    homepageUrl: z.string().optional(),
+    openIssues: z.number().optional(),
+    openPullRequests: z.number().optional(),
+  }).optional(),
 };
 
 const repositorySummarySchema: z.ZodType<RepositorySummary> = z.object(repositorySummaryShape);
