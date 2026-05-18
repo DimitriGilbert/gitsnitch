@@ -32,14 +32,15 @@ async function buildRendererTemplate(templatePath: string | undefined): Promise<
   await rm(outDir, { recursive: true, force: true });
 
   const previousTemplateModule = process.env.GIT_SNITCH_TEMPLATE_MODULE;
-  if (templatePath) {
-    process.env.GIT_SNITCH_TEMPLATE_MODULE = templatePath;
-    await ensureTemplateReadable(templatePath);
-  } else {
-    delete process.env.GIT_SNITCH_TEMPLATE_MODULE;
-  }
 
   try {
+    if (templatePath) {
+      process.env.GIT_SNITCH_TEMPLATE_MODULE = templatePath;
+      await ensureTemplateReadable(templatePath);
+    } else {
+      delete process.env.GIT_SNITCH_TEMPLATE_MODULE;
+    }
+
     await viteBuild({ configFile, root: packageDirectory, logLevel: "silent" });
   } catch (error) {
     throw new Error(`Unable to compile report renderer${templatePath ? ` with template ${templatePath}` : ""}: ${errorMessage(error)}`);
