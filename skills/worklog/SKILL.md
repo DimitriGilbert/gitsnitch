@@ -11,6 +11,10 @@ User says: "give me my work log across all repos for this sprint"
 
 You scan their repos, pull commit history, and produce a single themed worklog.
 
+## Required skills
+
+You have to load the following skills: **not-ai-writer** (and optionally **repo-work-report** if analyzing individual repos)
+
 ## Multi-repo gathering workflow
 
 ### Phase 1 — Identify repositories

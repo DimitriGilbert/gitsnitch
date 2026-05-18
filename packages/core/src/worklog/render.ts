@@ -1,9 +1,31 @@
 import { marked } from "marked";
+import sanitizeHtml from "sanitize-html";
 
 import type { WorklogResult } from "./types.js";
 
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export function renderWorklogHtml(result: WorklogResult): string {
-  const body = marked.parse(result.markdown) as string;
+  const rawBody = marked.parse(result.markdown) as string;
+  const body = sanitizeHtml(rawBody, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "h1", "h2"]),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      img: ["src", "alt", "title", "width", "height"],
+      a: ["href", "title", "target", "rel"],
+    },
+  });
+
+  const safeGeneratedAt = escapeHtml(result.generatedAt);
+  const safeHarness = escapeHtml(result.harness);
+  const safeModel = escapeHtml(result.model);
 
   return `<!doctype html>
 <html lang="en">
@@ -60,7 +82,7 @@ header p { margin: 0; color: #656d76; font-size: 0.875rem; }
 <body>
 <header>
 <h1>Worklog</h1>
-<p>Generated ${result.generatedAt} using ${result.harness}/${result.model}</p>
+<p>Generated ${safeGeneratedAt} using ${safeHarness}/${safeModel}</p>
 </header>
 <main class="markdown-body">
 ${body}

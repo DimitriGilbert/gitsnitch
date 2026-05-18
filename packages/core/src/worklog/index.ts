@@ -7,7 +7,7 @@ import { buildWorklogPrompt } from "./prompts.js";
 
 export async function generateWorklog(report: ReportData, options: WorklogOptions): Promise<WorklogResult> {
   const harness = createHarness(options.harness);
-  const prompt = buildWorklogPrompt(report, options.prompt);
+  const prompt = buildWorklogPrompt(report, options.prompt, options.skill);
 
   const markdown = await harness.generate(prompt, {
     model: options.model,

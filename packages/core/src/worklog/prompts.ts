@@ -75,8 +75,8 @@ export function getSkillDefinitions(): readonly SkillDefinition[] {
 const DEFAULT_SKILL: WorklogSkillName = "work-log";
 
 export function resolveSkillPrompt(skill: WorklogSkillName | undefined, userPrompt: string | undefined): string {
-  if (userPrompt !== undefined && userPrompt.length > 0) {
-    return userPrompt;
+  if (userPrompt !== undefined && userPrompt.trim().length > 0) {
+    return userPrompt.trim();
   }
 
   const resolvedSkill = skill ?? DEFAULT_SKILL;
@@ -85,8 +85,8 @@ export function resolveSkillPrompt(skill: WorklogSkillName | undefined, userProm
   return definition?.defaultPrompt ?? SKILLS.find((s) => s.name === DEFAULT_SKILL)!.defaultPrompt;
 }
 
-export function buildWorklogPrompt(report: ReportData, customPrompt?: string): string {
-  const resolvedPrompt = resolveSkillPrompt(undefined, customPrompt);
+export function buildWorklogPrompt(report: ReportData, customPrompt?: string, skill?: WorklogSkillName): string {
+  const resolvedPrompt = resolveSkillPrompt(skill, customPrompt);
   const reportJson = JSON.stringify(report, null, 2);
 
   return `${resolvedPrompt}

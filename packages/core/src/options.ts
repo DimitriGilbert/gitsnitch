@@ -105,7 +105,7 @@ export const scanReportOptionsSchema = reportOptionsSchema.extend({
 
 export const worklogOptionsSchema = z.object({
   prompt: z.string().min(1).optional(),
-  harness: z.enum(WORKLOG_HARNESSES).default("opencode"),
+  harness: z.enum(WORKLOG_HARNESSES).default("opencode" as const),
   model: z.string().min(1).optional(),
   skill: z.enum(["repo-log", "work-log", "changelog", "devlog"]).optional(),
   outputPath: z.string().min(1).optional(),

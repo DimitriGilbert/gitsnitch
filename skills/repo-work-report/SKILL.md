@@ -13,6 +13,10 @@ description: >
 
 Given a repo path and date range (e.g. `2025-01-01` to `2025-01-31`), run git log to collect commits, classify them by type, read diffs for the biggest changes, then write a markdown report grouped by commit classification with hashes, file paths, and a stats table.
 
+## Required skills
+
+You have to load the following skills: **not-ai-writer**
+
 ## Data gathering workflow
 
 ### Phase 1 — Collect raw commits

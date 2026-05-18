@@ -65,7 +65,7 @@ describe("worklog command", () => {
     const code = await runCli(["worklog", jsonPath, "--harness", "invalid"], { io: output.io });
 
     expect(code).toBe(1);
-    expect(output.stderr()).toContain("Expected one of: opencode, pi, codex");
+    expect(output.stderr()).toContain("Expected one of: opencode");
   });
 
   it("rejects invalid skill option", async () => {

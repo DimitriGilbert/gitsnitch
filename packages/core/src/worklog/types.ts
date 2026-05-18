@@ -1,4 +1,4 @@
-export const WORKLOG_HARNESSES = ["opencode", "pi", "codex"] as const;
+export const WORKLOG_HARNESSES = ["opencode"] as const;
 
 export type WorklogHarness = (typeof WORKLOG_HARNESSES)[number];
 
@@ -26,5 +26,5 @@ export interface AiHarness {
 
 export interface HarnessCallOptions {
   readonly model?: string;
-  readonly skill?: string;
+  readonly skill?: WorklogSkillName;
 }

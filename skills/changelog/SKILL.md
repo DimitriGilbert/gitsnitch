@@ -11,6 +11,10 @@ description: "Generates a changelog from git repository data using commit classi
 - "create release notes for v2.0"
 - "what changed between v1.0 and v2.0"
 
+## Required skills
+
+You have to load the following skills: **not-ai-writer**
+
 ## Workflow
 
 ### Phase 1 — Gather commits

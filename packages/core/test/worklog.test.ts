@@ -57,11 +57,9 @@ describe("worklogOptionsSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts all valid harness values", () => {
-    for (const harness of ["opencode", "pi", "codex"] as const) {
-      const result = worklogOptionsSchema.safeParse({ harness });
-      expect(result.success).toBe(true);
-    }
+  it("accepts valid opencode harness", () => {
+    const result = worklogOptionsSchema.safeParse({ harness: "opencode" });
+    expect(result.success).toBe(true);
   });
 });
 
@@ -90,6 +88,22 @@ describe("buildWorklogPrompt", () => {
     expect(prompt).toContain("Generate a work log");
     expect(prompt).toContain("Report data:");
   });
+
+  it("uses skill default prompt when skill provided and no custom prompt", () => {
+    const report = makeMinimalRepoReport();
+    const prompt = buildWorklogPrompt(report, undefined, "changelog");
+
+    expect(prompt).toContain("Keep a Changelog");
+    expect(prompt).toContain("Report data:");
+  });
+
+  it("prefers custom prompt over skill default", () => {
+    const report = makeMinimalRepoReport();
+    const prompt = buildWorklogPrompt(report, "Custom override", "changelog");
+
+    expect(prompt).toContain("Custom override");
+    expect(prompt).not.toContain("Keep a Changelog");
+  });
 });
 
 describe("resolveSkillPrompt", () => {
@@ -97,6 +111,18 @@ describe("resolveSkillPrompt", () => {
     const result = resolveSkillPrompt(undefined, "Custom user prompt");
 
     expect(result).toBe("Custom user prompt");
+  });
+
+  it("returns trimmed user prompt when whitespace-only provided", () => {
+    const result = resolveSkillPrompt(undefined, "   ");
+
+    expect(result).toContain("work log");
+  });
+
+  it("returns trimmed user prompt for whitespace-padded input", () => {
+    const result = resolveSkillPrompt(undefined, "  padded prompt  ");
+
+    expect(result).toBe("padded prompt");
   });
 
   it("returns skill default when skill provided and no user prompt", () => {
@@ -124,18 +150,6 @@ describe("createHarness", () => {
 
     expect(harness.name).toBe("opencode");
     expect(typeof harness.generate).toBe("function");
-  });
-
-  it("throws not yet implemented for pi harness", async () => {
-    const harness = createHarness("pi");
-
-    await expect(harness.generate("test", {})).rejects.toThrow("not yet implemented");
-  });
-
-  it("throws not yet implemented for codex harness", async () => {
-    const harness = createHarness("codex");
-
-    await expect(harness.generate("test", {})).rejects.toThrow("not yet implemented");
   });
 
   it("throws for invalid harness name", () => {
@@ -173,5 +187,30 @@ describe("renderWorklogHtml", () => {
 
     expect(html).toContain("Generated 2024-06-15T12:00:00.000Z using opencode/gpt-4");
     expect(html).toContain("<h1>Worklog</h1>");
+  });
+
+  it("escapes HTML in metadata fields", () => {
+    const html = renderWorklogHtml({
+      markdown: "Content",
+      harness: "opencode",
+      model: "<script>alert(1)</script>",
+      generatedAt: "2024-06-15<>&\"'",
+    });
+
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).toContain("&lt;&gt;&amp;&quot;&#39;");
+  });
+
+  it("sanitizes HTML in markdown body", () => {
+    const html = renderWorklogHtml({
+      markdown: '# Heading\n\n<script>alert("xss")</script>\n\n<p>Safe content</p>',
+      harness: "opencode",
+      model: "default",
+      generatedAt: "2024-06-15T12:00:00.000Z",
+    });
+
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("Safe content");
   });
 });

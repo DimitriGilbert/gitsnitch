@@ -13,6 +13,10 @@ User provides:
 
 Output: one article matching voice, length, and style of examples, built from work data.
 
+## Required skills
+
+You have to load the following skills: **not-ai-writer** (and optionally **repo-work-report** or **worklog** if consuming their output)
+
 ## Article Crafting Workflow
 
 ### Phase 1: Analyze Example Articles
