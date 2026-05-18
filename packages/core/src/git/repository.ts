@@ -117,7 +117,7 @@ async function getOriginRemoteUrl(options: RepositoryInfoOptions): Promise<strin
     const result = await options.runner("git", ["config", "--get", "remote.origin.url"], { cwd: options.repoPath });
     return normalizeRemoteUrl(result.stdout);
   } catch (error) {
-    if (isMissingGitDataError(error)) {
+    if (isMissingGitDataError(error) || isConfigKeyNotFoundError(error)) {
       return undefined;
     }
     throw error;
@@ -142,14 +142,20 @@ function isMissingGitDataError(error: unknown): error is CommandFailure {
     text.includes("not a git repository") ||
     text.includes("commits yet") ||
     text.includes("no such commit") ||
-    text.includes("malformed object name") ||
-    readNumberProperty(error, "exitCode") === 1
+    text.includes("malformed object name")
   );
 }
 
 function readStringProperty(value: object, property: "stdout" | "stderr"): string | undefined {
   const descriptor = Object.getOwnPropertyDescriptor(value, property);
   return typeof descriptor?.value === "string" ? descriptor.value : undefined;
+}
+
+function isConfigKeyNotFoundError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return readNumberProperty(error, "exitCode") === 1;
 }
 
 function readNumberProperty(value: object, property: "exitCode"): number | undefined {

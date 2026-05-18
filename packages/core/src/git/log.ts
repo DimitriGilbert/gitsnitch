@@ -117,11 +117,26 @@ function parseRecord(record: string): CommitRecord | undefined {
     return undefined;
   }
 
+  const NUMSTAT_PATTERN = /^\d+\t\d+\t|^-\t-\t/;
+  const fileChanges: CommitFileChange[] = [];
+  const bodyParts: string[] = header.body ? [header.body] : [];
+
+  for (const line of fileLines) {
+    if (NUMSTAT_PATTERN.test(line)) {
+      const change = parseFileChange(line);
+      if (change) {
+        fileChanges.push(change);
+      }
+    } else {
+      bodyParts.push(line);
+    }
+  }
+
   return {
     hash: header.hash,
     shortHash: header.shortHash,
     message: header.subject,
-    ...(header.body ? { body: header.body } : {}),
+    ...(bodyParts.length > 0 ? { body: bodyParts.join("\n") } : {}),
     author: {
       name: header.authorName,
       email: header.authorEmail,
@@ -131,7 +146,7 @@ function parseRecord(record: string): CommitRecord | undefined {
     parents: header.parents,
     refs: header.refs,
     classification: "other",
-    files: fileLines.map((line) => parseFileChange(line)).filter((change): change is CommitFileChange => change !== undefined),
+    files: fileChanges,
   };
 }
 

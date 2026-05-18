@@ -90,7 +90,8 @@ function matchesExclude(pattern: string, relativePath: string, name: string): bo
     return normalizedPath.split("/").includes(segment);
   }
   if (normalizedPattern.endsWith("/**")) {
-    return normalizedPath.startsWith(normalizedPattern.slice(0, -3));
+    const prefix = normalizedPattern.slice(0, -3);
+    return normalizedPath === prefix || normalizedPath.startsWith(prefix + "/");
   }
   return false;
 }
