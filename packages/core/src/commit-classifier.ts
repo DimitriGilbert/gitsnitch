@@ -82,7 +82,7 @@ export function classifyCommit(message: string): CommitClassification {
     return conventionalTypeMap[conventionalToken];
   }
 
-  if (/^merge\b|\bmerge\b|\brebase\b/i.test(summary)) {
+  if (/^merge\b/i.test(summary) || /^rebase\b/i.test(summary)) {
     return "merge";
   }
   if (/^revert\b/i.test(summary)) {

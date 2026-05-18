@@ -257,7 +257,7 @@ function commitDeletions(commit: CommitRecord): number {
 }
 
 function authorKey(commit: CommitRecord): string {
-  return `${commit.author.name}\u0000${commit.author.email}`;
+  return `${commit.author.name.trim()}\u0000${commit.author.email.trim().toLowerCase()}`;
 }
 
 function ascending(left: number, right: number): number {
