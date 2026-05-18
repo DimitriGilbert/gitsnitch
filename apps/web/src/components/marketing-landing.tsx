@@ -1,11 +1,11 @@
 import { buttonVariants } from "@git-snitch/ui/components/button";
 import { cn } from "@git-snitch/ui/lib/utils";
-import { ArrowRight, Boxes, Code2, FileArchive, MonitorDown, Package, ScanSearch } from "lucide-react";
+import { ArrowRight, Boxes, Code2, ExternalLink, FileArchive, MonitorDown, Package, ScanSearch } from "lucide-react";
 import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
 
 const npmPackageUrl = "https://www.npmjs.com/package/git-snitch";
-const githubUrl = "https://github.com/placeholder/git-snitch";
+const githubUrl = "https://github.com/DimitriGilbert/gitsnitch";
 
 const features = [
   {
@@ -174,9 +174,14 @@ function MarketingNav() {
             Screens
           </a>
         </div>
-        <a href={npmPackageUrl} className={cn(buttonVariants(), "rounded-full bg-white px-5 text-black hover:bg-zinc-200")}>
-          npm
-        </a>
+        <div className="flex items-center gap-2">
+          <a href="/example.html" target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5 rounded-full border-white/25 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white")}>
+            Demo <ExternalLink className="size-3.5" />
+          </a>
+          <a href={githubUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" className="rounded-full border border-white/15 p-2 text-zinc-300 transition-colors hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
+          </a>
+        </div>
       </div>
     </nav>
   );
@@ -202,8 +207,8 @@ function Hero() {
           <a href="#usage" className={cn(buttonVariants({ size: "lg" }), "rounded-full bg-white px-7 text-base text-black hover:bg-zinc-200")}>
             Install and run <ArrowRight className="size-4" />
           </a>
-          <a href={githubUrl} className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-full border-white/25 bg-black/35 px-7 text-base text-white hover:bg-white/10 hover:text-white")}>
-            GitHub placeholder
+          <a href={githubUrl} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-full border-white/25 bg-black/35 px-7 text-base text-white hover:bg-white/10 hover:text-white")}>
+            GitHub
           </a>
         </div>
       </div>
@@ -339,8 +344,8 @@ function FinalAction() {
               Use the package and repository links below as placeholders until final release URLs are assigned.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a href={npmPackageUrl} className={cn(buttonVariants(), "rounded-full bg-black px-6 text-white hover:bg-zinc-800")}>npm package placeholder</a>
-              <a href={githubUrl} className={cn(buttonVariants({ variant: "outline" }), "rounded-full border-black/20 px-6 text-black hover:bg-black/5")}>GitHub placeholder</a>
+              <a href={npmPackageUrl} className={cn(buttonVariants(), "rounded-full bg-black px-6 text-white hover:bg-zinc-800")}>npm package</a>
+              <a href={githubUrl} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ variant: "outline" }), "rounded-full border-black/20 px-6 text-black hover:bg-black/5")}>GitHub</a>
             </div>
           </div>
         </div>

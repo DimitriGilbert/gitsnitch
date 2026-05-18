@@ -4,22 +4,20 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLIC_DIR="$REPO_ROOT/apps/web/public"
 DIST_DIR="$REPO_ROOT/apps/web/dist/client"
-EXAMPLE_DIR="$PUBLIC_DIR/example-report"
+EXAMPLE_FILE="$PUBLIC_DIR/example.html"
 
 step() { echo "==> $*"; }
 
 step "Building all packages..."
-pnpm --filter "$REPO_ROOT" run build
+pnpm run build
 
 step "Generating example report on this repo..."
-mkdir -p "$EXAMPLE_DIR"
 node "$REPO_ROOT/apps/cli/dist/index.js" repo "$REPO_ROOT" \
-  --output "$EXAMPLE_DIR/index.html" \
-  --overwrite
+  --output "$EXAMPLE_FILE"
 
 step "Verifying example report exists..."
-if [ ! -f "$EXAMPLE_DIR/index.html" ]; then
-  echo "ERROR: example report was not generated at $EXAMPLE_DIR/index.html" >&2
+if [ ! -f "$EXAMPLE_FILE" ]; then
+  echo "ERROR: example report was not generated at $EXAMPLE_FILE" >&2
   exit 1
 fi
 
