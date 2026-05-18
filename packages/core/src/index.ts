@@ -1,3 +1,6 @@
+export type { AnonymizationOptions, ReportAnonymizationMeta } from "./anonymize.js";
+export { anonymizeReport } from "./anonymize.js";
+
 export type {
   CodeQualityMetrics,
   CodeQualityMetricsWithoutHealthScore,
@@ -50,6 +53,7 @@ export type {
   LineCountResult,
   LineCountSkippedFile,
 } from "./git/types.js";
+export type { GitHubRepoMeta } from "./git/github.js";
 export type {
   RepoTemplateContext,
   RepoTemplateRouteId,
@@ -94,6 +98,7 @@ export { buildGitLogArgs, getGitCommits } from "./git/log.js";
 export { countLinesOfCode } from "./git/loc.js";
 export { getCommitBranches, getCurrentBranch, getRepositoryInfo, normalizeRemoteUrl } from "./git/repository.js";
 export { createGitCommandRunner } from "./git/runner.js";
+export { detectGitHubRepo, fetchGitHubRepoMeta } from "./git/github.js";
 export { calculateRiskLevel, findFileHotspots } from "./hotspots.js";
 export {
   analyzeDevelopmentRhythm,
