@@ -113,6 +113,27 @@ declare module "@tanstack/react-router" {
   }
 }
 
+function normalizeGitRemote(remoteUrl: string): string | undefined {
+  // SSH format: git@github.com:org/repo.git
+  const scpMatch = /^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/.exec(remoteUrl);
+  if (scpMatch?.[1] !== undefined && scpMatch[2] !== undefined) {
+    return `https://github.com/${scpMatch[1]}/${scpMatch[2]}`;
+  }
+
+  // SSH format: ssh://git@github.com/org/repo.git
+  const sshMatch = /^ssh:\/\/git@github\.com\/([^/]+)\/(.+?)(?:\.git)?$/.exec(remoteUrl);
+  if (sshMatch?.[1] !== undefined && sshMatch[2] !== undefined) {
+    return `https://github.com/${sshMatch[1]}/${sshMatch[2]}`;
+  }
+
+  // HTTPS: only return if it starts with http:// or https://
+  if (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://")) {
+    return remoteUrl.replace(/\.git$/, "");
+  }
+
+  return undefined;
+}
+
 function ReportShell() {
   return (
     <ThemeProvider>
@@ -162,7 +183,7 @@ function ReportRootLayout() {
   const isAnonymized = report.anonymization?.applied === true;
   const title = report.kind === "repo" ? report.repository.name : "Scan report";
   const titleHref = report.kind === "repo" && !isAnonymized && report.repository.remoteUrl
-    ? report.repository.remoteUrl
+    ? normalizeGitRemote(report.repository.remoteUrl)
     : undefined;
   const scanNavigationItems = report.kind === "scan"
     ? [

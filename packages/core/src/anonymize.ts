@@ -133,7 +133,7 @@ export function anonymizeReport(
 
   return {
     report: anonymized,
-    meta: { applied: true, flags, salt: metaSalt },
+    meta: { applied: flags.length > 0, flags, salt: metaSalt },
   };
 }
 
@@ -144,7 +144,7 @@ function anonymizeRepoReport(report: RepoReportData, ctx: AnonymizationContext):
     kind: report.kind,
     generatedAt: report.generatedAt,
     repository: anonymizeRepositorySummary(report.repository, ctx),
-    options: anonymizeRepoOptions(report.options),
+    options: anonymizeRepoOptions(report.options, ctx),
     commits: report.commits.map((commit) => anonymizeCommit(commit, ctx)),
     contributors: report.contributors.map((c) => anonymizeContributor(c, ctx)),
     analysis: anonymizeRepositoryAnalysis(report.analysis, ctx),
@@ -157,8 +157,8 @@ function anonymizeScanReport(report: ScanReportData, ctx: AnonymizationContext):
   return {
     kind: report.kind,
     generatedAt: report.generatedAt,
-    directory: ".",
-    options: anonymizeScanOptions(report.options),
+    directory: ctx.options.hidePaths ? "." : report.directory,
+    options: anonymizeScanOptions(report.options, ctx),
     projects: report.projects.map((p) => anonymizeScanProject(p, ctx)),
     analysis: report.analysis,
   };
@@ -169,14 +169,15 @@ function anonymizeScanReport(report: ScanReportData, ctx: AnonymizationContext):
 function anonymizeRepositorySummary(repo: RepositorySummary, ctx: AnonymizationContext): RepositorySummary {
   return {
     name: repo.name,
-    path: ".",
-    rootPath: ".",
+    path: ctx.options.hidePaths ? "." : repo.path,
+    rootPath: ctx.options.hidePaths ? "." : repo.rootPath,
     currentBranch: repo.currentBranch,
     remoteUrl: ctx.options.hideUrls ? undefined : repo.remoteUrl,
     firstCommitAt: repo.firstCommitAt,
     lastCommitAt: repo.lastCommitAt,
     totalCommits: repo.totalCommits,
     totalContributors: repo.totalContributors,
+    github: ctx.options.hideUrls ? undefined : repo.github,
   };
 }
 
@@ -195,19 +196,19 @@ function anonymizeScannedRepositorySummary(
 
 // ---------- RepoReportOptions ----------
 
-function anonymizeRepoOptions(options: RepoReportOptions): RepoReportOptions {
+function anonymizeRepoOptions(options: RepoReportOptions, ctx: AnonymizationContext): RepoReportOptions {
   return {
     ...options,
-    repoPath: ".",
+    repoPath: ctx.options.hidePaths ? "." : options.repoPath,
   };
 }
 
 // ---------- ScanReportOptions ----------
 
-function anonymizeScanOptions(options: ScanReportOptions): ScanReportOptions {
+function anonymizeScanOptions(options: ScanReportOptions, ctx: AnonymizationContext): ScanReportOptions {
   return {
     ...options,
-    directory: ".",
+    directory: ctx.options.hidePaths ? "." : options.directory,
   };
 }
 
@@ -218,9 +219,11 @@ function anonymizeCommit(commit: CommitRecord, ctx: AnonymizationContext): Commi
 
   let hash = commit.hash;
   let shortHash = commit.shortHash;
+  let parents: readonly string[] = commit.parents;
   if (ctx.options.hashCommits) {
     hash = obfuscateCommitHash(ctx.salt, commit.hash);
     shortHash = hash.slice(0, 7);
+    parents = commit.parents.map((p) => obfuscateCommitHash(ctx.salt, p));
   }
 
   let message = commit.message;
@@ -241,7 +244,7 @@ function anonymizeCommit(commit: CommitRecord, ctx: AnonymizationContext): Commi
     },
     authoredAt: commit.authoredAt,
     committedAt: commit.committedAt,
-    parents: commit.parents,
+    parents,
     refs: commit.refs,
     classification: commit.classification,
     files: commit.files.map((f) => anonymizeFileChange(f, ctx)),

@@ -130,7 +130,7 @@ export function mergeGitSnitchConfig(
       ...base.worklog,
       ...definedProperties(overrides.worklog),
     },
-    anon: overrides.anon ?? base.anon,
+    anon: overrides.anon ? { ...base.anon, ...overrides.anon } : base.anon,
     noGitHub: overrides.noGitHub ?? base.noGitHub,
   };
 

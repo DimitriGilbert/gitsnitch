@@ -115,7 +115,8 @@ export async function fetchGitHubRepoMeta(
       ...(Array.isArray(data.issues) ? { openIssues: data.issues.length } : {}),
       ...(Array.isArray(data.pullRequests) ? { openPullRequests: data.pullRequests.length } : {}),
     };
-  } catch {
+  } catch (error: unknown) {
+    console.warn(`Failed to fetch GitHub metadata for ${remoteUrl}: ${error instanceof Error ? error.message : String(error)}`);
     return undefined;
   }
 }

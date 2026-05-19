@@ -88,7 +88,7 @@ const reportScreens = [
   },
 ] as const;
 
-const marqueeItems = ["repo", "scan", "--anon", "--template", "--json", "--open", "--no-overwrite", "--github", "worklog", "standalone HTML"] as const;
+const marqueeItems = ["repo", "scan", "--anon", "--template", "--json", "--open", "--no-overwrite", "--no-github", "worklog", "standalone HTML"] as const;
 
 export function MarketingLanding() {
   const mainRef = useRef<HTMLElement>(null);
