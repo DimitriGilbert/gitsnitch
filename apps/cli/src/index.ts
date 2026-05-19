@@ -293,9 +293,27 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
 
   let finalReport = report;
   if (config.anon !== undefined) {
-    const { report: anonReport, meta } = anonymizeReport(report, config.anon);
-    if (anonReport.kind === "scan") {
-      finalReport = { ...anonReport, anonymization: meta };
+    const anonFlags = Object.entries(config.anon)
+      .filter((entry): entry is [string, true] => entry[1] === true)
+      .map(([key]) => key);
+    const hidePaths = config.anon.hidePaths === true;
+    let anyAnonymized = false;
+    const anonymizedProjects = report.projects.map((project) => {
+      if (project.report.repository.github?.visibility === "public") return project;
+      anyAnonymized = true;
+      const { report: anonReport, meta } = anonymizeReport(project.report, config.anon);
+      return anonReport.kind === "repo"
+        ? { ...project, report: { ...anonReport, anonymization: meta } }
+        : project;
+    });
+    if (anyAnonymized) {
+      finalReport = {
+        ...report,
+        directory: hidePaths ? "." : report.directory,
+        options: { ...report.options, directory: hidePaths ? "." : report.options.directory },
+        projects: anonymizedProjects,
+        anonymization: { applied: anonFlags.length > 0, flags: anonFlags, salt: "scan" },
+      };
     }
   }
 
