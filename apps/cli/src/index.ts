@@ -226,7 +226,8 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
   const report = await generateRepoReport(reportOptions, { noGitHub: config.noGitHub });
 
   let finalReport = report;
-  if (config.anon !== undefined) {
+  const isPublicRepo = report.repository.github?.visibility === "public";
+  if (config.anon !== undefined && !isPublicRepo) {
     const { report: anonReport, meta } = anonymizeReport(report, config.anon);
     if (anonReport.kind === "repo") {
       finalReport = { ...anonReport, anonymization: meta };
