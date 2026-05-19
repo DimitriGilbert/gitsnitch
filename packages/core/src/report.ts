@@ -49,7 +49,7 @@ export async function generateRepoReport(
   const commits = await getClassifiedCommits({ ...parsedOptions, ...branchOptions }, runner);
   const loc = await countLinesOfCode(parsedOptions.repoPath, { exclude: DEFAULT_SCAN_EXCLUDE_PATTERNS });
   const repositoryInfo = await getRepositoryInfo({ repoPath: parsedOptions.repoPath, runner });
-  const github = !dependencies.noGitHub && !parsedOptions.noGitHub && repositoryInfo.remoteUrl
+  const github = commits.length > 0 && !dependencies.noGitHub && !parsedOptions.noGitHub && repositoryInfo.remoteUrl
     ? await fetchGitHubRepoMeta(repositoryInfo.remoteUrl, runner)
     : undefined;
   const contributors = generateContributorStats(commits);

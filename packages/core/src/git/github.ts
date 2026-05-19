@@ -19,7 +19,7 @@ interface GhRepoViewJson {
   readonly licenseInfo?: {
     readonly spdxId?: string;
     readonly name?: string;
-  };
+  } | null;
   readonly repositoryTopics?: readonly {
     readonly name: string;
   }[];
@@ -100,7 +100,7 @@ export async function fetchGitHubRepoMeta(
         : {}),
       ...(typeof data.stargazerCount === "number" ? { stars: data.stargazerCount } : {}),
       ...(typeof data.forkCount === "number" ? { forks: data.forkCount } : {}),
-      ...(data.licenseInfo !== undefined
+      ...(data.licenseInfo
         ? { license: data.licenseInfo.spdxId ?? data.licenseInfo.name }
         : {}),
       ...(Array.isArray(data.repositoryTopics) && data.repositoryTopics.length > 0
