@@ -31,13 +31,13 @@ describe("MarketingLanding", () => {
       throw new Error("Usage section was not rendered");
     }
 
-    expect(within(usage).getByText("pnpm add -D git-snitch")).toBeTruthy();
-    expect(within(usage).getByText("npm install --save-dev git-snitch")).toBeTruthy();
-    expect(within(usage).getByText("pnpm exec git-snitch repo --output ./reports/repo.html")).toBeTruthy();
-    expect(within(usage).getByText("pnpm exec git-snitch scan ../workspace --output ./reports/scan.html")).toBeTruthy();
-    expect(within(usage).getByText("pnpm exec git-snitch scan ../workspace --max-depth 3")).toBeTruthy();
-    expect(within(usage).getByText("pnpm exec git-snitch repo --open")).toBeTruthy();
-    expect(within(usage).getByText("pnpm exec git-snitch repo --no-overwrite")).toBeTruthy();
+    expect(within(usage).getByText("pnpm add -D @git-snitch/cli")).toBeTruthy();
+    expect(within(usage).getByText("npm install --save-dev @git-snitch/cli")).toBeTruthy();
+    expect(within(usage).getByText("npx @git-snitch/cli repo --output ./reports/repo.html")).toBeTruthy();
+    expect(within(usage).getByText("npx @git-snitch/cli scan ../workspace --output ./reports/scan.html")).toBeTruthy();
+    expect(within(usage).getByText("npx @git-snitch/cli scan ../workspace --max-depth 3")).toBeTruthy();
+    expect(within(usage).getByText("npx @git-snitch/cli repo --open")).toBeTruthy();
+    expect(within(usage).getByText("npx @git-snitch/cli repo --no-overwrite")).toBeTruthy();
 
     expect(usage.textContent).not.toMatch(/git-snitch scan --dir/);
   });
@@ -56,8 +56,8 @@ describe("MarketingLanding", () => {
   it("links to npm and GitHub placeholders and includes generated report placeholders", () => {
     render(<MarketingLanding />);
 
-    expect(screen.getAllByRole("link", { name: /npm/i }).some((link) => link.getAttribute("href") === "https://www.npmjs.com/package/git-snitch")).toBe(true);
-    expect(screen.getAllByRole("link", { name: /github placeholder/i }).some((link) => link.getAttribute("href") === "https://github.com/placeholder/git-snitch")).toBe(true);
+    expect(screen.getAllByRole("link", { name: /npm/i }).some((link) => link.getAttribute("href") === "https://www.npmjs.com/package/@git-snitch/cli")).toBe(true);
+    expect(screen.getAllByRole("link", { name: /github/i }).some((link) => link.getAttribute("href") === "https://github.com/DimitriGilbert/gitsnitch")).toBe(true);
     expect(screen.getByRole("heading", { level: 3, name: "Repo fixture" })).toBeTruthy();
     expect(screen.getByRole("heading", { level: 3, name: "Scan fixture" })).toBeTruthy();
     expect(screen.getAllByText(/illustrative fixture placeholder/i)).toHaveLength(2);

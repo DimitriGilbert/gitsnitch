@@ -4,7 +4,7 @@ import { ArrowRight, Boxes, Code2, ExternalLink, FileArchive, MonitorDown, Packa
 import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
 
-const npmPackageUrl = "https://www.npmjs.com/package/git-snitch";
+const npmPackageUrl = "https://www.npmjs.com/package/@git-snitch/cli";
 const githubUrl = "https://github.com/DimitriGilbert/gitsnitch";
 
 const features = [
@@ -55,23 +55,23 @@ const features = [
 const usageSteps = [
   {
     title: "Install the npm CLI",
-    commands: ["pnpm add -D git-snitch", "npm install --save-dev git-snitch"],
+    commands: ["pnpm add -D @git-snitch/cli", "npm install --save-dev @git-snitch/cli"],
   },
   {
     title: "Create a single-repo report",
-    commands: ["pnpm exec git-snitch repo --output ./reports/repo.html", "pnpm exec git-snitch repo --open"],
+    commands: ["npx @git-snitch/cli repo --output ./reports/repo.html", "npx @git-snitch/cli repo --open"],
   },
   {
     title: "Scan multiple repositories",
-    commands: ["pnpm exec git-snitch scan ../workspace --output ./reports/scan.html", "pnpm exec git-snitch scan ../workspace --max-depth 3"],
+    commands: ["npx @git-snitch/cli scan ../workspace --output ./reports/scan.html", "npx @git-snitch/cli scan ../workspace --max-depth 3"],
   },
   {
     title: "Customize or protect output",
-    commands: ["pnpm exec git-snitch repo --template ./report-template.tsx", "pnpm exec git-snitch repo --no-overwrite"],
+    commands: ["npx @git-snitch/cli repo --template ./report-template.tsx", "npx @git-snitch/cli repo --no-overwrite"],
   },
   {
     title: "Share safely",
-    commands: ["pnpm exec git-snitch repo --anon --output report.html"],
+    commands: ["npx @git-snitch/cli repo --anon --output report.html"],
   },
 ] as const;
 

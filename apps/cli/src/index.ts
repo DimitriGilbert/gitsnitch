@@ -116,6 +116,7 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--worklog-harness <string>", "AI harness: opencode, pi, codex", parseHarnessOption)
     .option("--worklog-model <string>", "Override default model for the AI harness")
     .option("--worklog-skill <string>", "AI skill for the harness", parseSkillOption)
+    .option("--worklog-output <path>", "Output file path for the worklog document")
     .action(async (repoPath: string, options: RepoCommandOptions, command: Command) => {
       await runRepoCommand(repoPath, normalizeRepoCommandOptions(options, command), { io, opener });
     });

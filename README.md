@@ -18,30 +18,30 @@ git-snitch is a Node-based CLI that turns one or many git repositories into self
 ## Installation
 
 ```bash
+# run without installing
+npx @git-snitch/cli repo
+
 # pnpm (recommended)
-pnpm add -D git-snitch
+pnpm add -D @git-snitch/cli
 
 # npm
-npm install --save-dev git-snitch
-
-# run without installing
-npx git-snitch repo
+npm install --save-dev @git-snitch/cli
 ```
 
 ## Quick Start
 
 ```bash
 # Generate a report for the current repository
-pnpm exec git-snitch repo
+npx @git-snitch/cli repo
 
 # Scan a directory for all git repos
-pnpm exec git-snitch scan ../workspace
+npx @git-snitch/cli scan ../workspace
 
 # Generate and open immediately
-pnpm exec git-snitch repo --open
+npx @git-snitch/cli repo --open
 
 # Share a report with sensitive data removed
-pnpm exec git-snitch repo --anon --output report.html
+npx @git-snitch/cli repo --anon --output report.html
 ```
 
 ## CLI Reference

@@ -22,7 +22,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       {
         name: "description",
         content:
-          "Generate standalone HTML reports for git repositories and repository scans with the git-snitch npm CLI.",
+          "Generate standalone HTML reports for git repositories and repository scans with the @git-snitch/cli npm package.",
       },
     ],
     links: [
