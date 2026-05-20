@@ -302,9 +302,18 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
       if (project.report.repository.github?.visibility === "public") return project;
       anyAnonymized = true;
       const { report: anonReport, meta } = anonymizeReport(project.report, config.anon);
-      return anonReport.kind === "repo"
-        ? { ...project, report: { ...anonReport, anonymization: meta } }
-        : project;
+      if (anonReport.kind !== "repo") return project;
+      return {
+        ...project,
+        repository: {
+          ...project.repository,
+          name: anonReport.repository.name,
+          id: anonReport.repository.name,
+          remoteUrl: anonReport.repository.remoteUrl,
+          github: anonReport.repository.github,
+        },
+        report: { ...anonReport, anonymization: meta },
+      };
     });
     if (anyAnonymized) {
       finalReport = {

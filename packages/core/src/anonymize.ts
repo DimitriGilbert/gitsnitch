@@ -168,7 +168,7 @@ function anonymizeScanReport(report: ScanReportData, ctx: AnonymizationContext):
 
 function anonymizeRepositorySummary(repo: RepositorySummary, ctx: AnonymizationContext): RepositorySummary {
   return {
-    name: repo.name,
+    name: `project-${fnv1aHex(ctx.salt, repo.name).slice(0, 6)}`,
     path: ctx.options.hidePaths ? "." : repo.path,
     rootPath: ctx.options.hidePaths ? "." : repo.rootPath,
     currentBranch: repo.currentBranch,
@@ -189,7 +189,7 @@ function anonymizeScannedRepositorySummary(
 ): ScannedRepositorySummary {
   return {
     ...anonymizeRepositorySummary(repo, ctx),
-    id: repo.id,
+    id: `project-${fnv1aHex(ctx.salt, repo.id).slice(0, 6)}`,
     relativePath: lastPathSegment(repo.relativePath),
   };
 }
