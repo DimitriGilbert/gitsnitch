@@ -1,5 +1,5 @@
 {
-  "name": "@git-snitch/cli",
+  "name": "git-snitch",
   "version": "0.0.3",
   "publishConfig": {
     "access": "public"

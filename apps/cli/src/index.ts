@@ -22,13 +22,13 @@ import { runWorklogCommand } from "./worklog-command.js";
 import type { AnonOptions, GitSnitchConfigOverrides, RepoReportOptions, ScanOptions, WorklogOptions } from "@git-snitch/core";
 
 export interface PackageMetadata {
-  readonly name: "@git-snitch/cli";
+  readonly name: "git-snitch";
   readonly role: "cli";
   readonly version: "0.0.0";
 }
 
 export const cliPackageMetadata = {
-  name: "@git-snitch/cli",
+  name: "git-snitch",
   role: "cli",
   version: "0.0.0",
 } satisfies PackageMetadata;
