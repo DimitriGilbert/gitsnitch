@@ -225,12 +225,12 @@ npm_publish() {
 
     if [[ "$DRY_RUN" == true ]]; then
       dryrun "npm publish --access public  (${pkg_name} from ${rel})"
-      npm publish --access public --dry-run --prefix "$pkg_dir"
+      (cd "$pkg_dir" && npm publish --access public --dry-run)
       continue
     fi
 
     info "Publishing ${pkg_name}..."
-    npm publish --access public --prefix "$pkg_dir"
+    (cd "$pkg_dir" && npm publish --access public)
     ok "Published ${pkg_name}"
   done
 }
