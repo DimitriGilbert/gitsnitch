@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
@@ -550,7 +550,7 @@ function formatCliError(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown CLI error.";
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href || import.meta.url === pathToFileURL(await realpath(process.argv[1] ?? "")).href) {
   const exitCode = await runCli(process.argv.slice(2));
   process.exitCode = exitCode;
 }
