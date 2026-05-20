@@ -244,8 +244,8 @@ describe("scan report routes", () => {
     expect(screen.getByText("AI messages")).toBeTruthy();
     expect(screen.getByText("AI tokens")).toBeTruthy();
     expect(screen.getByText("AI cost")).toBeTruthy();
-    expect(screen.getByText("Model breakdown")).toBeTruthy();
-    expect(screen.getByText("Client breakdown")).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Model breakdown" })).toBeTruthy();
     expect(screen.getByText("pi-default")).toBeTruthy();
     expect(screen.getByText("claude-sonnet")).toBeTruthy();
     expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
@@ -320,7 +320,7 @@ describe("scan report routes", () => {
 
     expect(screen.getByRole("heading", { name: "api" })).toBeTruthy();
     expect(screen.getByText("AI usage")).toBeTruthy();
-    expect(screen.getByText("Client breakdown")).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
     expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
     expect(screen.getAllByText("400").length).toBeGreaterThan(0);
   });

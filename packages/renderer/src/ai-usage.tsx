@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@git-snitch/ui/components/table";
 
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo } from "react";
 import type { AiUsageBreakdownItem, AiUsageSummary, ReportAiUsageProjectSummary } from "@git-snitch/core";
 
 import { EmptyState } from "./empty-state.js";
+import { DataTable } from "./tables.js";
 
 type AiUsagePanelProps = {
   readonly title?: string;
@@ -41,41 +43,28 @@ function SummaryMetric({ label, value, description }: { readonly label: string; 
   );
 }
 
+const breakdownColumns: ColumnDef<AiUsageBreakdownItem>[] = [
+  { accessorKey: "key", header: "Name", cell: ({ row }) => <span className="font-medium text-foreground">{row.original.key}</span> },
+  { accessorKey: "records", header: "Messages", cell: ({ row }) => formatNumber(row.original.records) },
+  { accessorKey: "tokens.total", header: "Tokens", cell: ({ row }) => formatAiUsageTokens(row.original.tokens.total) },
+  { accessorKey: "cost", header: "Cost", cell: ({ row }) => formatAiUsageCost(row.original.cost) },
+];
+
 function BreakdownTable({ title, rows, emptyDescription }: { readonly title: string; readonly rows: readonly AiUsageBreakdownItem[]; readonly emptyDescription: string }) {
-  const visibleRows = rows.slice(0, 8);
+  const columns = useMemo(() => breakdownColumns, []);
 
   return (
-    <div className="rounded-xl border border-border/70 bg-background/70">
-      <div className="border-b border-border/70 px-4 py-3">
-        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-      </div>
-      {visibleRows.length === 0 ? (
-        <div className="p-4">
-          <EmptyState title={`${title} unavailable`} description={emptyDescription} />
-        </div>
-      ) : (
-        <Table aria-label={title}>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="bg-muted/30 px-3 py-2 text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">Name</TableHead>
-              <TableHead className="bg-muted/30 px-3 py-2 text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">Messages</TableHead>
-              <TableHead className="bg-muted/30 px-3 py-2 text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">Tokens</TableHead>
-              <TableHead className="bg-muted/30 px-3 py-2 text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">Cost</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleRows.map((row) => (
-              <TableRow key={row.key}>
-                <TableCell className="px-3 py-3 text-sm font-medium text-foreground">{row.key}</TableCell>
-                <TableCell className="px-3 py-3 text-sm text-muted-foreground">{formatNumber(row.records)}</TableCell>
-                <TableCell className="px-3 py-3 text-sm text-muted-foreground">{formatNumber(row.tokens.total)}</TableCell>
-                <TableCell className="px-3 py-3 text-sm text-muted-foreground">{formatAiUsageCost(row.cost)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </div>
+    <DataTable
+      ariaLabel={title}
+      data={rows}
+      columns={columns}
+      search={{ placeholder: "Search", toText: (row) => row.key }}
+      exportConfig={{
+        filename: `${title.toLowerCase().replace(/\s+/g, "-")}.csv`,
+        mapRow: (row) => ({ name: row.key, messages: row.records, tokens: row.tokens.total, cost: row.cost }),
+      }}
+      emptyState={{ title: `${title} unavailable`, description: emptyDescription }}
+    />
   );
 }
 

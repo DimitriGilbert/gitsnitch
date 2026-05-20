@@ -21,7 +21,7 @@ import {
 } from "recharts";
 import type { ReactNode } from "react";
 
-import type { AiUsageBreakdownItem, CommitRecord, ContributorSummary, RepoReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
+import type { AiUsageBreakdownItem, CommitRecord, ContributorSummary, RepoReportData, ReportAiUsageProjectSummary, ScanProjectReport, ScanReportData } from "@git-snitch/core";
 
 import { EmptyState } from "./empty-state.js";
 
@@ -43,6 +43,10 @@ export type CodeOwnershipPoint = { readonly owner: string; readonly additions: n
 export type ProjectComparisonPoint = { readonly project: string; readonly commits: number; readonly contributors: number; readonly filesChanged: number };
 export type ActivityHeatmapCell = { readonly day: string; readonly hour: string; readonly commits: number };
 export type AiUsageBreakdownPoint = { readonly name: string; readonly messages: number; readonly tokens: number; readonly cost: number };
+export type ScanCommitSlice = { readonly name: string; readonly commits: number };
+export type ScanChurnSlice = { readonly name: string; readonly additions: number; readonly deletions: number; readonly churn: number };
+export type ScanAiProjectSlice = { readonly name: string; readonly messages: number; readonly tokens: number };
+export type ScanAiModelSlice = { readonly name: string; readonly messages: number; readonly tokens: number };
 
 type ChartPanelProps = {
   readonly title: string;
@@ -492,6 +496,167 @@ export function ActivityHeatmap({ data }: { readonly data: readonly ActivityHeat
       </div>
     </ChartPanel>
   );
+}
+
+export function ScanCommitBarChart({ data }: { readonly data: readonly ScanCommitSlice[] }) {
+  return (
+    <ChartPanel
+      title="Commits per project"
+      description="Commit count across scanned repositories."
+      isEmpty={!hasPositiveValue(data, (item) => [item.commits])}
+      emptyTitle="No commits to chart"
+      emptyDescription="Commit comparison needs at least one scanned project with commits."
+    >
+      <ChartContainer config={{ commits: { label: "Commits", color: chartPalette[1] } }} className="h-64 w-full">
+        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" hide />
+          <YAxis dataKey="name" type="category" width={112} tickLine={false} axisLine={false} />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="commits" fill="var(--color-commits)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+        </BarChart>
+      </ChartContainer>
+    </ChartPanel>
+  );
+}
+
+export function ScanChurnPieChart({ data }: { readonly data: readonly ScanChurnSlice[] }) {
+  return (
+    <ChartPanel
+      title="Churn per project"
+      description="Lines changed (additions + deletions) by project."
+      isEmpty={!hasPositiveValue(data, (item) => [item.churn])}
+      emptyTitle="No churn to chart"
+      emptyDescription="Churn data appears after file-level additions or deletions exist."
+    >
+      <ChartContainer config={{ churn: { label: "Churn" } }} className="h-64 w-full">
+        <PieChart>
+          <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+          <Pie data={data} dataKey="churn" nameKey="name" innerRadius={56} outerRadius={88} paddingAngle={2} {...staticChartProps}>
+            {data.map((slice, index) => (
+              <Cell key={slice.name} fill={chartPalette[index % chartPalette.length]} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+    </ChartPanel>
+  );
+}
+
+export function ScanAiMessagesPieChart({ data }: { readonly data: readonly ScanAiProjectSlice[] }) {
+  return (
+    <ChartPanel
+      title="AI messages per project"
+      description="Message share across scanned repositories."
+      isEmpty={!hasPositiveValue(data, (item) => [item.messages])}
+      emptyTitle="No AI messages to chart"
+      emptyDescription="AI message data appears after local assistant records are matched to projects."
+    >
+      <ChartContainer config={{ messages: { label: "Messages" } }} className="h-64 w-full">
+        <PieChart>
+          <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+          <Pie data={data} dataKey="messages" nameKey="name" innerRadius={56} outerRadius={88} paddingAngle={2} {...staticChartProps}>
+            {data.map((slice, index) => (
+              <Cell key={slice.name} fill={chartPalette[index % chartPalette.length]} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+    </ChartPanel>
+  );
+}
+
+export function ScanAiTokensBarChart({ data }: { readonly data: readonly ScanAiProjectSlice[] }) {
+  return (
+    <ChartPanel
+      title="AI tokens per project"
+      description="Token usage across scanned repositories."
+      isEmpty={!hasPositiveValue(data, (item) => [item.tokens])}
+      emptyTitle="No AI tokens to chart"
+      emptyDescription="AI token data appears after local assistant records are matched to projects."
+    >
+      <ChartContainer config={{ tokens: { label: "Tokens", color: chartPalette[2] } }} className="h-64 w-full">
+        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" hide />
+          <YAxis dataKey="name" type="category" width={112} tickLine={false} axisLine={false} />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="tokens" fill="var(--color-tokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+        </BarChart>
+      </ChartContainer>
+    </ChartPanel>
+  );
+}
+
+export function ScanAiModelsPieChart({ data }: { readonly data: readonly ScanAiModelSlice[] }) {
+  return (
+    <ChartPanel
+      title="AI usage by model"
+      description="Message share across all models used in the scan."
+      isEmpty={!hasPositiveValue(data, (item) => [item.messages])}
+      emptyTitle="No AI model data to chart"
+      emptyDescription="AI model data appears after local assistant records with model metadata are matched."
+    >
+      <ChartContainer config={{ messages: { label: "Messages" } }} className="h-64 w-full">
+        <PieChart>
+          <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+          <Pie data={data} dataKey="messages" nameKey="name" innerRadius={56} outerRadius={88} paddingAngle={2} {...staticChartProps}>
+            {data.map((slice, index) => (
+              <Cell key={slice.name} fill={chartPalette[index % chartPalette.length]} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+    </ChartPanel>
+  );
+}
+
+export function deriveScanCommitData(projects: readonly ScanProjectReport[]): readonly ScanCommitSlice[] {
+  return projects
+    .map((project) => ({
+      name: project.repository.name,
+      commits: project.report.commits.length,
+    }))
+    .sort((left, right) => right.commits - left.commits || left.name.localeCompare(right.name));
+}
+
+export function deriveScanChurnData(projects: readonly ScanProjectReport[]): readonly ScanChurnSlice[] {
+  return projects
+    .map((project) => {
+      let additions = 0;
+      let deletions = 0;
+      for (const commit of project.report.commits) {
+        for (const file of commit.files) {
+          additions += file.additions;
+          deletions += file.deletions;
+        }
+      }
+      return { name: project.repository.name, additions, deletions, churn: additions + deletions };
+    })
+    .filter((item) => item.churn > 0)
+    .sort((left, right) => right.churn - left.churn || left.name.localeCompare(right.name));
+}
+
+export function deriveScanAiPerProjectData(projects: readonly ScanProjectReport[]): readonly ScanAiProjectSlice[] {
+  return projects
+    .filter((project) => project.report.aiUsage !== undefined && project.report.aiUsage.records > 0)
+    .map((project) => ({
+      name: project.repository.name,
+      messages: project.report.aiUsage!.records,
+      tokens: project.report.aiUsage!.tokens.total,
+    }))
+    .sort((left, right) => right.messages - left.messages || left.name.localeCompare(right.name));
+}
+
+export function deriveScanAiModelsData(aiUsage: ReportAiUsageProjectSummary): readonly ScanAiModelSlice[] {
+  return aiUsage.breakdowns.byModel
+    .filter((item) => item.records > 0 || item.tokens.total > 0)
+    .map((item) => ({
+      name: item.key,
+      messages: item.records,
+      tokens: item.tokens.total,
+    }))
+    .sort((left, right) => right.messages - left.messages || left.name.localeCompare(right.name));
 }
 
 function heatClass(commits: number) {

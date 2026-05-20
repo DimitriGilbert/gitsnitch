@@ -5,6 +5,19 @@ import { cn } from "@git-snitch/ui/lib/utils";
 
 import { AiUsagePanel, formatAiUsageCost, formatAiUsageTokens } from "./ai-usage.js";
 import { ChartsRoute } from "./charts-route.js";
+import {
+  LanguageDistributionChart,
+  ScanAiMessagesPieChart,
+  ScanAiModelsPieChart,
+  ScanAiTokensBarChart,
+  ScanChurnPieChart,
+  ScanCommitBarChart,
+  deriveLanguageDistributionData,
+  deriveScanAiModelsData,
+  deriveScanAiPerProjectData,
+  deriveScanChurnData,
+  deriveScanCommitData,
+} from "./charts.js";
 import { EmptyState } from "./empty-state.js";
 import { StatsGrid } from "./layout.js";
 import { RepoOverview } from "./overview.js";
@@ -318,6 +331,28 @@ function CrossProjectContributors({ report }: { readonly report: ScanReportData 
   );
 }
 
+function ScanCharts({ report }: { readonly report: ScanReportData }) {
+  const commitData = deriveScanCommitData(report.projects);
+  const churnData = deriveScanChurnData(report.projects);
+  const languageData = deriveLanguageDistributionData(report);
+  const aiPerProject = deriveScanAiPerProjectData(report.projects);
+  const aiModels = report.analysis.aiUsage !== undefined ? deriveScanAiModelsData(report.analysis.aiUsage) : [];
+
+  return (
+    <section aria-label="Visual comparison">
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">Visual comparison</h2>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <ScanCommitBarChart data={commitData} />
+        <ScanChurnPieChart data={churnData} />
+        <LanguageDistributionChart data={languageData} />
+        {aiPerProject.length > 0 ? <ScanAiMessagesPieChart data={aiPerProject} /> : null}
+        {aiPerProject.length > 0 ? <ScanAiTokensBarChart data={aiPerProject} /> : null}
+        {aiModels.length > 0 ? <ScanAiModelsPieChart data={aiModels} /> : null}
+      </div>
+    </section>
+  );
+}
+
 export function ScanOverview({ report }: ScanRouteProps) {
   if (report.kind !== "scan") {
     return scanDataMismatch("Scan overview is unavailable for repository reports");
@@ -335,6 +370,7 @@ export function ScanOverview({ report }: ScanRouteProps) {
         />
       ) : null}
       <ProjectComparison report={report} />
+      <ScanCharts report={report} />
       <CrossProjectContributors report={report} />
     </div>
   );

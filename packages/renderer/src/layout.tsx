@@ -53,7 +53,7 @@ export function Header({ title, titleHref, eyebrow, description, actions }: Head
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mx-auto flex w-full flex-col gap-6 px-6 py-8 sm:px-10 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-4xl">
           {eyebrow ? <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">{eyebrow}</p> : null}
           {titleHref ? (
@@ -81,7 +81,7 @@ export function Navigation({ items, label = "Report sections" }: NavigationProps
 
   return (
     <nav aria-label={label} className="border-b bg-background/80">
-      <div className="mx-auto flex w-full max-w-7xl gap-2 overflow-x-auto px-5 py-3 sm:px-8">
+      <div className="mx-auto flex w-full gap-2 overflow-x-auto px-6 py-3 sm:px-10">
         {items.map((item) =>
           item.disabled ? (
             <span
@@ -146,7 +146,7 @@ export function AppShell({
     <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-background text-foreground transition-colors">
       <Header title={title} titleHref={titleHref} eyebrow={eyebrow} description={description} actions={headerActions} />
       <Navigation items={navigationItems} />
-      <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 sm:py-10")}>{children}</div>
+      <div className={cn("mx-auto flex w-full flex-col gap-8 px-6 py-8 sm:px-10 sm:py-10")}>{children}</div>
     </main>
   );
 }
