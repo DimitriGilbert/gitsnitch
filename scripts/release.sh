@@ -212,11 +212,45 @@ github_release() {
 
 # ── npm publish ───────────────────────────────────────────────────────────────
 
+is_depended_on() {
+  local pkg_name="$1"
+  for rel in "${PUBLISHABLE[@]}"; do
+    local other="${REPO_ROOT}/${rel}/package.json"
+    if grep -q "\"${pkg_name}\"" "$other" 2>/dev/null; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+publish_order() {
+  local ordered=()
+  local remaining=("${PUBLISHABLE[@]}")
+
+  while [[ ${#remaining[@]} -gt 0 ]]; do
+    local next_round=()
+    for rel in "${remaining[@]}"; do
+      local pkg_name
+      pkg_name="$(node -e "process.stdout.write(require('${REPO_ROOT}/${rel}/package.json').name)")"
+      if ! is_depended_on "$pkg_name" || [[ ${#ordered[@]} -eq 0 && ${#next_round[@]} -eq 0 ]]; then
+        ordered+=("$rel")
+      else
+        next_round+=("$rel")
+      fi
+    done
+    remaining=("${next_round[@]}")
+  done
+
+  PUBLISHABLE=("${ordered[@]}")
+}
+
 npm_publish() {
   if [[ "$NO_NPM" == true ]]; then
     info "Skipping npm publish (--no-npm)"
     return 0
   fi
+
+  publish_order
 
   for rel in "${PUBLISHABLE[@]}"; do
     local pkg_dir="${REPO_ROOT}/${rel}"
@@ -224,13 +258,13 @@ npm_publish() {
     pkg_name="$(node -e "process.stdout.write(require('${pkg_dir}/package.json').name)")"
 
     if [[ "$DRY_RUN" == true ]]; then
-      dryrun "npm publish --access public  (${pkg_name} from ${rel})"
-      (cd "$pkg_dir" && npm publish --access public --dry-run)
+      dryrun "pnpm publish --access public --no-git-checks  (${pkg_name} from ${rel})"
+      (cd "$pkg_dir" && pnpm publish --access public --no-git-checks --dry-run)
       continue
     fi
 
     info "Publishing ${pkg_name}..."
-    (cd "$pkg_dir" && npm publish --access public)
+    (cd "$pkg_dir" && pnpm publish --access public --no-git-checks)
     ok "Published ${pkg_name}"
   done
 }
