@@ -14,7 +14,8 @@
     "test": "turbo test",
     "lint": "turbo lint",
     "dev:web": "turbo -F web dev",
-    "deploy": "bash scripts/deploy.sh"
+    "deploy": "bash scripts/deploy.sh",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@git-snitch/env": "workspace:*",
