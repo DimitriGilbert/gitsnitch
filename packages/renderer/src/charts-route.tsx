@@ -6,6 +6,7 @@ import type { RepoReportData, ReportData } from "@git-snitch/core";
 import {
   ActivityHeatmap,
   AdditionsVsDeletionsChart,
+  AiUsageBreakdownChart,
   CodeOwnershipChart,
   CommitActivityChart,
   CommitSizeDistributionChart,
@@ -17,6 +18,7 @@ import {
   WeeklyActivityChart,
   deriveActivityHeatmapData,
   deriveAdditionsVsDeletionsData,
+  deriveAiUsageBreakdownData,
   deriveCodeOwnershipData,
   deriveCommitActivityData,
   deriveCommitSizeDistributionData,
@@ -112,6 +114,8 @@ export function ChartsRoute({ report }: ChartsRouteProps) {
   const timeOfDay = deriveTimeOfDayData(report.commits);
   const contributorShare = deriveContributorPieData(report.contributors);
   const weeklyActivity = deriveWeeklyActivityData(report.commits);
+  const aiUsageByModel = deriveAiUsageBreakdownData(report.aiUsage?.breakdowns.byModel ?? []);
+  const aiUsageByHarness = deriveAiUsageBreakdownData(report.aiUsage?.breakdowns.byClient ?? []);
   const showContributorShare = contributorShare.length > 1;
 
   return (
@@ -153,6 +157,15 @@ export function ChartsRoute({ report }: ChartsRouteProps) {
           <ContributionCalendar data={calendar} />
         </div>
       </SectionFrame>
+
+      {report.aiUsage !== undefined ? (
+        <SectionFrame title="AI usage" description="Model and harness usage from matched local assistant logs. These charts stay scoped to this repository report payload.">
+          <div className="grid grid-flow-dense gap-5 lg:grid-cols-2">
+            <AiUsageBreakdownChart title="AI usage by model" description="Matched assistant tokens and messages grouped by model." data={aiUsageByModel} />
+            <AiUsageBreakdownChart title="AI usage by harness" description="Matched assistant tokens and messages grouped by local harness or client." data={aiUsageByHarness} />
+          </div>
+        </SectionFrame>
+      ) : null}
     </div>
   );
 }

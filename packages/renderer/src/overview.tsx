@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/compone
 
 import type { CommitRecord, GitHubRepoMeta, RepoReportData, ReportData } from "@git-snitch/core";
 
+import { AiUsagePanel } from "./ai-usage.js";
 import { CommitActivityChart, deriveCommitActivityData } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
 import { StatsGrid } from "./layout.js";
@@ -232,6 +233,7 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
       <div className="grid gap-6">
         <StatsGrid stats={buildOverviewStats(report)} />
         {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
+        {report.aiUsage !== undefined ? <AiUsagePanel usage={report.aiUsage} /> : null}
         <EmptyState
           title="This repository has no commit activity yet"
           description="git-snitch found a repository report, but there are no commits or contributors to summarize. Charts and streaks will appear after activity exists."
@@ -244,6 +246,7 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
     <div className="grid gap-6">
       <StatsGrid stats={buildOverviewStats(report)} />
       {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
+      {report.aiUsage !== undefined ? <AiUsagePanel usage={report.aiUsage} /> : null}
       <section aria-label="Repository overview previews" className="grid grid-flow-dense gap-6 lg:grid-cols-2">
         <StreakCard streak={deriveStreakSummary(report.commits)} />
         <ChartPreview report={report} />

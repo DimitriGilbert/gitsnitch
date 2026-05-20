@@ -9,7 +9,7 @@ import {
 
 import type { ReportData, WorklogOptions, WorklogResult } from "@git-snitch/core";
 
-import type { CliDependencies } from "./index.js";
+import type { CliIo } from "./index.js";
 
 export interface WorklogCommandOptions {
   readonly output?: string;
@@ -24,7 +24,7 @@ export interface WorklogCommandOptions {
 export async function runWorklogCommand(
   exportFilePath: string,
   options: WorklogCommandOptions,
-  dependencies: Required<CliDependencies>,
+  dependencies: { readonly io: CliIo },
 ): Promise<void> {
   const resolvedPath = resolve(exportFilePath);
 

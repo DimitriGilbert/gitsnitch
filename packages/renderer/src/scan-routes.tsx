@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { ContributorSummary, RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
 import { cn } from "@git-snitch/ui/lib/utils";
 
+import { AiUsagePanel, formatAiUsageCost, formatAiUsageTokens } from "./ai-usage.js";
 import { ChartsRoute } from "./charts-route.js";
 import { EmptyState } from "./empty-state.js";
 import { StatsGrid } from "./layout.js";
@@ -43,6 +44,9 @@ type ProjectComparisonRow = {
   readonly contributors: number;
   readonly churn: number;
   readonly lastCommitAt: string | undefined;
+  readonly aiMessages: number | undefined;
+  readonly aiTokens: number | undefined;
+  readonly aiCost: number | undefined;
 };
 
 export type ScanProjectRouteEntry = {
@@ -180,7 +184,7 @@ export function deriveCrossProjectContributors(report: ScanReportData): readonly
     .sort((left, right) => right.commitCount - left.commitCount || right.projectCount - left.projectCount || left.name.localeCompare(right.name));
 }
 
-const projectComparisonColumns: ColumnDef<ProjectComparisonRow>[] = [
+const projectComparisonBaseColumns: ColumnDef<ProjectComparisonRow>[] = [
   {
     accessorKey: "label",
     header: "Project",
@@ -206,6 +210,12 @@ const projectComparisonColumns: ColumnDef<ProjectComparisonRow>[] = [
   { accessorKey: "contributors", header: "Contributors", cell: ({ row }) => formatNumber(row.original.contributors) },
   { accessorKey: "churn", header: "Churn", cell: ({ row }) => formatNumber(row.original.churn) },
   { accessorKey: "lastCommitAt", header: "Last commit", cell: ({ row }) => formatDate(row.original.lastCommitAt) },
+];
+
+const projectComparisonAiUsageColumns: ColumnDef<ProjectComparisonRow>[] = [
+  { accessorKey: "aiMessages", header: "AI messages", cell: ({ row }) => row.original.aiMessages === undefined ? "—" : formatNumber(row.original.aiMessages) },
+  { accessorKey: "aiTokens", header: "AI tokens", cell: ({ row }) => row.original.aiTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiTokens) },
+  { accessorKey: "aiCost", header: "AI cost", cell: ({ row }) => row.original.aiCost === undefined ? "—" : formatAiUsageCost(row.original.aiCost) },
 ];
 
 const crossProjectContributorColumns: ColumnDef<ContributorAggregate>[] = [
@@ -245,19 +255,31 @@ function ScanIntro({ report }: { readonly report: ScanReportData }) {
 
 function ProjectComparison({ report }: { readonly report: ScanReportData }) {
   const entries = deriveScanProjectRouteEntries(report);
+  const hasProjectAiUsage = report.projects.some((project) => project.report.aiUsage !== undefined);
+  const columns = useMemo(
+    () => hasProjectAiUsage ? [...projectComparisonBaseColumns, ...projectComparisonAiUsageColumns] : projectComparisonBaseColumns,
+    [hasProjectAiUsage],
+  );
 
   const rows: readonly ProjectComparisonRow[] = useMemo(
     () =>
-      entries.map((entry) => ({
-        slug: entry.slug,
-        href: entry.href,
-        label: entry.label,
-        remoteUrl: entry.project.repository.remoteUrl,
-        commits: entry.project.report.commits.length,
-        contributors: entry.project.report.contributors.length,
-        churn: totalChurn(entry.project.report),
-        lastCommitAt: entry.project.repository.lastCommitAt,
-      })),
+      entries.map((entry) => {
+        const usage = entry.project.report.aiUsage;
+
+        return {
+          slug: entry.slug,
+          href: entry.href,
+          label: entry.label,
+          remoteUrl: entry.project.repository.remoteUrl,
+          commits: entry.project.report.commits.length,
+          contributors: entry.project.report.contributors.length,
+          churn: totalChurn(entry.project.report),
+          lastCommitAt: entry.project.repository.lastCommitAt,
+          aiMessages: usage?.records,
+          aiTokens: usage?.tokens.total,
+          aiCost: usage?.cost,
+        };
+      }),
     [entries],
   );
 
@@ -265,7 +287,7 @@ function ProjectComparison({ report }: { readonly report: ScanReportData }) {
     <DataTable
       ariaLabel="Project comparison"
       data={rows}
-      columns={projectComparisonColumns}
+      columns={columns}
       search={{ placeholder: "Search projects", toText: (row) => `${row.label}` }}
       emptyState={{
         title: "No repositories matched this scan",
@@ -305,6 +327,13 @@ export function ScanOverview({ report }: ScanRouteProps) {
     <div className="grid gap-6">
       <ScanIntro report={report} />
       <StatsGrid stats={buildScanStats(report)} />
+      {report.analysis.aiUsage !== undefined ? (
+        <AiUsagePanel
+          title="Scan AI usage"
+          description="Total matched local assistant usage across repositories in this scan. Workspace paths are not rendered in the HTML report."
+          usage={report.analysis.aiUsage}
+        />
+      ) : null}
       <ProjectComparison report={report} />
       <CrossProjectContributors report={report} />
     </div>

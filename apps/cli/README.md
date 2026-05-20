@@ -11,6 +11,7 @@ git-snitch is a Node-based CLI that turns one or many git repositories into self
 - **Multi-repo scan reports** — `git-snitch scan` recursively discovers git repositories and produces a comparative report
 - **Privacy and anonymization** — `--anon` one flag to strip repo names, author emails, file paths, remote URLs, commit hashes, and messages
 - **GitHub enrichment** — stars, forks, license, and topics pulled automatically via the `gh` CLI
+- **Optional AI usage summaries** — `--ai-usage` adds local assistant token, message, client, model, and cost totals when supported logs are available
 - **AI-powered worklogs** — `git-snitch worklog` generates narrative work logs from report data using an AI harness
 - **Custom templates** — pass `--template <path>` for route-level TSX overrides while missing routes fall back to the built-in renderer
 - **JSON and CSV exports** — `--json` dumps raw report data; scan reports include exportable tables
@@ -65,6 +66,8 @@ git-snitch repo [repoPath]
 | `--open` | Open the generated HTML report |
 | `--no-overwrite` | Fail if the output file already exists |
 | `--template <path>` | TSX module exporting route-level template overrides |
+| `--ai-usage` | Include matched local AI assistant usage in the report |
+| `--verbose` | Print progress to stderr while keeping JSON stdout clean |
 
 **Branch selection:**
 
@@ -248,6 +251,21 @@ Pass `--no-github` to explicitly skip all GitHub API calls:
 git-snitch repo --no-github
 git-snitch scan ../workspace --no-github
 ```
+
+## AI Usage
+
+Pass `--ai-usage` to `repo` or `scan` to include local assistant usage in the HTML report and JSON export:
+
+```bash
+git-snitch repo --ai-usage
+git-snitch scan ../workspace --ai-usage
+```
+
+Supported clients are OpenCode, Claude, Codex, Gemini, Amp, Kilo, and Pi. Reports show total tokens, estimated USD cost, message count, and available client/model/day breakdowns. Scan reports also include aggregate usage and per-project usage when records can be attributed to a scanned repository.
+
+Project attribution depends on local log metadata. Gemini, Amp, and Kilo logs can be missing workspace paths; when only project hashes or session metadata are available, git-snitch leaves those rows unattributed instead of guessing a repository.
+
+The AI usage parser is inspired by tokscale's local-session usage approach. Reference: [junhoyeo/tokscale](https://github.com/junhoyeo/tokscale), MIT licensed. git-snitch implements its own parser and does not vendor tokscale code.
 
 ### Config file
 

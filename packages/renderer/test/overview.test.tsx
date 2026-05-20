@@ -26,6 +26,34 @@ function emptyRepoReport(): RepoReportData {
   };
 }
 
+function repoReportWithAiUsage(): RepoReportData {
+  return {
+    ...repoReportFixture,
+    aiUsage: {
+      records: 3,
+      tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 },
+      cost: 0.1234,
+      breakdowns: {
+        byClient: [{ key: "opencode", records: 2, tokens: { input: 80, output: 40, cacheRead: 20, cacheWrite: 10, reasoning: 10, total: 160 }, cost: 0.1 }],
+        byModel: [{ key: "gpt-5.5", records: 3, tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 }, cost: 0.1234 }],
+        byDay: [{ key: "2024-01-02", records: 3, tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 }, cost: 0.1234 }],
+      },
+    },
+  };
+}
+
+function repoReportWithZeroAiUsage(): RepoReportData {
+  return {
+    ...repoReportFixture,
+    aiUsage: {
+      records: 0,
+      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, total: 0 },
+      cost: 0,
+      breakdowns: { byClient: [], byModel: [], byDay: [] },
+    },
+  };
+}
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -70,6 +98,28 @@ describe("repo overview route content", () => {
 
     expect(screen.getByRole("heading", { name: "Repo overview is unavailable for scan reports" })).toBeTruthy();
     expect(screen.getByText(/expects a single-repository report/i)).toBeTruthy();
+  });
+
+  it("renders repository AI usage totals and breakdowns when data exists", () => {
+    render(<RepoOverview report={repoReportWithAiUsage()} />);
+
+    expect(screen.getByText("AI usage")).toBeTruthy();
+    expect(screen.getByText("Total tokens")).toBeTruthy();
+    expect(screen.getAllByText("200").length).toBeGreaterThan(0);
+    expect(screen.getByText("Estimated cost")).toBeTruthy();
+    expect(screen.getAllByText("$0.1234").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Messages").length).toBeGreaterThan(0);
+    expect(screen.getByText("opencode")).toBeTruthy();
+    expect(screen.getByText("gpt-5.5")).toBeTruthy();
+    expect(screen.queryByText("/workspace/fixture-repo")).toBeNull();
+  });
+
+  it("renders an explicit AI usage empty state when totals are zero", () => {
+    render(<RepoOverview report={repoReportWithZeroAiUsage()} />);
+
+    expect(screen.getByText("AI usage")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "No AI usage matched this report" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Client breakdown unavailable" })).toBeTruthy();
   });
 
   it("derives current and longest streaks from consecutive commit dates", () => {

@@ -1,6 +1,7 @@
 import type { CommitRecord } from "./commits.js";
 import type { ContributorSummary } from "./contributors.js";
 import type { IsoDateString } from "./json.js";
+import type { ReportAiUsageProjectSummary } from "./ai-usage/index.js";
 
 export interface LanguageStat {
   readonly language: string;
@@ -173,6 +174,7 @@ export interface ScanAnalysis {
   readonly totalRepositories: number;
   readonly languages: readonly LanguageStat[];
   readonly qualitySignals: readonly QualitySignal[];
+  readonly aiUsage?: ReportAiUsageProjectSummary;
 }
 
 export function calculateProjectStats(commits: readonly CommitRecord[]): ProjectStats {

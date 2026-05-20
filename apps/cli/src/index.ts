@@ -15,11 +15,10 @@ import {
   renderWorklogHtml,
   worklogOptionsSchema,
 } from "@git-snitch/core";
+import type { AiUsageStoreRoots, AnonOptions, GitSnitchConfigOverrides, RepoReportOptions, ReportProgressEvent, ScanOptions, WorklogOptions } from "@git-snitch/core";
 import { buildStandaloneReportHtml } from "@git-snitch/renderer/build";
 
 import { runWorklogCommand } from "./worklog-command.js";
-
-import type { AnonOptions, GitSnitchConfigOverrides, RepoReportOptions, ScanOptions, WorklogOptions } from "@git-snitch/core";
 
 export interface PackageMetadata {
   readonly name: "@git-snitch/cli";
@@ -43,6 +42,13 @@ export type CliOpener = (filePath: string) => Promise<void>;
 export interface CliDependencies {
   readonly io?: CliIo;
   readonly opener?: CliOpener;
+  readonly aiUsageStoreRoots?: AiUsageStoreRoots;
+}
+
+interface ResolvedCliDependencies {
+  readonly io: CliIo;
+  readonly opener: CliOpener;
+  readonly aiUsageStoreRoots?: AiUsageStoreRoots;
 }
 
 interface SharedCommandOptions {
@@ -62,6 +68,8 @@ interface SharedCommandOptions {
   readonly hideMessages?: boolean;
   readonly obfuscateKey?: string;
   readonly github?: boolean;
+  readonly aiUsage?: boolean;
+  readonly verbose?: boolean;
 }
 
 interface RepoCommandOptions extends SharedCommandOptions {
@@ -79,6 +87,7 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
   const program = new Command();
   const io = dependencies.io ?? defaultIo;
   const opener = dependencies.opener ?? openFile;
+  const resolvedDependencies = resolveCliDependencies(io, opener, dependencies.aiUsageStoreRoots);
 
   program
     .name("git-snitch")
@@ -112,13 +121,15 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--hide-messages", "Replace commit messages with classification")
     .option("--obfuscate-key <string>", "Secret key for deterministic hashing")
     .option("--no-github", "Skip GitHub API calls")
+    .option("--ai-usage", "Include attributable local AI assistant usage")
+    .option("--verbose", "Print command progress to stderr")
     .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
     .option("--worklog-harness <string>", "AI harness: opencode, pi, codex", parseHarnessOption)
     .option("--worklog-model <string>", "Override default model for the AI harness")
     .option("--worklog-skill <string>", "AI skill for the harness", parseSkillOption)
     .option("--worklog-output <path>", "Output file path for the worklog document")
     .action(async (repoPath: string, options: RepoCommandOptions, command: Command) => {
-      await runRepoCommand(repoPath, normalizeRepoCommandOptions(options, command), { io, opener });
+      await runRepoCommand(repoPath, normalizeRepoCommandOptions(options, command), resolvedDependencies);
     });
 
   program
@@ -144,13 +155,15 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--hide-messages", "Replace commit messages with classification")
     .option("--obfuscate-key <string>", "Secret key for deterministic hashing")
     .option("--no-github", "Skip GitHub API calls")
+    .option("--ai-usage", "Include attributable local AI assistant usage")
+    .option("--verbose", "Print command progress to stderr")
     .option("--worklog-prompt <string>", "Override default AI prompt for worklog generation")
     .option("--worklog-harness <string>", "AI harness: opencode, pi, codex", parseHarnessOption)
     .option("--worklog-model <string>", "Override default model for the AI harness")
     .option("--worklog-skill <string>", "AI skill for the harness", parseSkillOption)
     .option("--worklog-output <path>", "Output file path for the worklog document")
     .action(async (directory: string, options: ScanCommandOptions, command: Command) => {
-      await runScanCommand(directory, normalizeOverwriteOption(options, command), { io, opener });
+      await runScanCommand(directory, normalizeOverwriteOption(options, command), resolvedDependencies);
     });
 
   program
@@ -177,11 +190,15 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
           model: options.model as string | undefined,
           skill: options.skill as string | undefined,
         },
-        { io, opener },
+        { io },
       );
     });
 
   return program;
+}
+
+function resolveCliDependencies(io: CliIo, opener: CliOpener, aiUsageStoreRoots: AiUsageStoreRoots | undefined): ResolvedCliDependencies {
+  return aiUsageStoreRoots === undefined ? { io, opener } : { io, opener, aiUsageStoreRoots };
 }
 
 export async function runCli(argv: readonly string[], dependencies: CliDependencies = {}): Promise<number> {
@@ -199,7 +216,7 @@ export async function runCli(argv: readonly string[], dependencies: CliDependenc
   }
 }
 
-async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dependencies: Required<CliDependencies>): Promise<void> {
+async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dependencies: ResolvedCliDependencies): Promise<void> {
   const resolvedRepoPath = resolve(repoPath);
   const config = mergeGitSnitchConfig(await loadGitSnitchConfig(resolvedRepoPath), buildSharedOverrides(options));
   const shouldOpenReport = options.open === true;
@@ -222,9 +239,14 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
     repoPath: resolvedRepoPath,
     branches,
     allBranches,
+    ...(options.aiUsage === true ? { aiUsage: true } : {}),
   };
 
-  const report = await generateRepoReport(reportOptions, { noGitHub: config.noGitHub });
+  const report = await generateRepoReport(reportOptions, {
+    noGitHub: config.noGitHub,
+    aiUsageStoreRoots: dependencies.aiUsageStoreRoots,
+    onProgress: createProgressReporter(options, dependencies.io),
+  });
 
   let finalReport = report;
   const isPublicRepo = report.repository.github?.visibility === "public";
@@ -267,7 +289,7 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
   }
 }
 
-async function runScanCommand(directory: string, options: ScanCommandOptions, dependencies: Required<CliDependencies>): Promise<void> {
+async function runScanCommand(directory: string, options: ScanCommandOptions, dependencies: ResolvedCliDependencies): Promise<void> {
   const resolvedDirectory = resolve(directory);
   const shouldOpenReport = options.open === true;
   const scanOverrides = buildScanOverrides(options);
@@ -290,7 +312,12 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
     scan: scanOptions,
     anon: config.anon,
     noGitHub: config.noGitHub,
-  }, { noGitHub: config.noGitHub });
+    ...(options.aiUsage === true ? { aiUsage: true } : {}),
+  }, {
+    noGitHub: config.noGitHub,
+    aiUsageStoreRoots: dependencies.aiUsageStoreRoots,
+    onProgress: createProgressReporter(options, dependencies.io),
+  });
 
   let finalReport = report;
   if (config.anon !== undefined) {
@@ -406,6 +433,57 @@ function buildScanOverrides(options: ScanCommandOptions): GitSnitchConfigOverrid
     maxDepth: options.maxDepth,
     excludePatterns: options.exclude ? [...options.exclude] : undefined,
   };
+}
+
+function createProgressReporter(options: SharedCommandOptions, io: CliIo): ((event: ReportProgressEvent) => void) | undefined {
+  if (options.verbose !== true) {
+    return undefined;
+  }
+
+  return (event) => {
+    io.stderr(`${formatProgressEvent(event)}\n`);
+  };
+}
+
+function formatProgressEvent(event: ReportProgressEvent): string {
+  if (event.kind === "scan") {
+    return formatScanProgressEvent(event);
+  }
+
+  const phaseText: Record<typeof event.phase, string> = {
+    branches: "resolving branches",
+    commits: "reading commits",
+    loc: "counting lines of code",
+    repository: "reading repository metadata",
+    github: "checking GitHub metadata",
+    "ai-usage": "checking AI usage",
+    analysis: "building analysis",
+  };
+  return `repo: ${phaseText[event.phase]} (${event.repoPath})`;
+}
+
+function formatScanProgressEvent(event: Extract<ReportProgressEvent, { readonly kind: "scan" }>): string {
+  switch (event.phase) {
+    case "discover":
+      return event.discovered === undefined
+        ? `scan: discovering repositories (${event.directory})`
+        : `scan: discovered ${event.discovered} repositories (${event.directory})`;
+    case "repo-start":
+      return `scan: analyzing repository ${formatScanPosition(event, 1)}${event.relativePath ?? event.repositoryPath ?? "unknown"}`;
+    case "repo-skip":
+      return `scan: skipped repository ${formatScanPosition(event, 0)}${event.relativePath ?? event.repositoryPath ?? "unknown"} (no commits in timeframe)`;
+    case "repo-complete":
+      return `scan: completed repository ${formatScanPosition(event, 0)}${event.relativePath ?? event.repositoryPath ?? "unknown"}`;
+    case "complete":
+      return `scan: finished ${event.completed ?? 0}/${event.total ?? 0} repositories`;
+  }
+}
+
+function formatScanPosition(event: Extract<ReportProgressEvent, { readonly kind: "scan" }>, offset: number): string {
+  if (event.completed === undefined || event.total === undefined) {
+    return "";
+  }
+  return `[${event.completed + offset}/${event.total}] `;
 }
 
 async function writeHtmlReport(options: {

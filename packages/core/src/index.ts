@@ -2,6 +2,21 @@ export type { AnonymizationOptions, ReportAnonymizationMeta } from "./anonymize.
 export { anonymizeReport } from "./anonymize.js";
 
 export type {
+  AiClientId,
+  AiSourceAttributionStatus,
+  AiTokenBreakdown,
+  AiUsageBreakdownItem,
+  AiUsageBreakdowns,
+  AiUsageDateFilter,
+  AiUsageMultiRepoSummary,
+  AiUsageProjectSummary,
+  AiUsageRecord,
+  AiUsageSummary,
+  AiUsageCollectionOptions,
+  AiUsageStoreRoots,
+  ReportAiUsageProjectSummary,
+} from "./ai-usage/index.js";
+export type {
   CodeQualityMetrics,
   CodeQualityMetricsWithoutHealthScore,
   CollaborationInsight,
@@ -39,7 +54,7 @@ export type { GitSnitchConfig, GitSnitchConfigOverrides } from "./config.js";
 export type { ContributorIdentity, ContributorSummary } from "./contributors.js";
 export type { IsoDateString, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./json.js";
 export type { RepoReportOptions, ReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptions, AnonOptions } from "./options.js";
-export type { GenerateScanReportOptions, ReportGenerationDependencies } from "./report.js";
+export type { GenerateScanReportOptions, RepoReportProgressEvent, ReportGenerationDependencies, ReportProgressEvent, ScanReportProgressEvent } from "./report.js";
 export type { RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "./report-data.js";
 export type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos.js";
 export type {
@@ -72,6 +87,29 @@ export type {
   WorklogSkillName,
 } from "./worklog/index.js";
 
+export {
+  AI_USAGE_CLIENTS,
+  AI_USAGE_SOURCE_NOTE,
+  AiUsageCollectionError,
+  collectAiUsageRecords,
+  dedupeAiUsageRecords,
+  emptyAiUsageSummary,
+  filterAiUsageByDate,
+  filterAiUsageForRepo,
+  isWorkspaceInRepo,
+  parseAmpUsageFile,
+  parseClaudeUsageJsonl,
+  parseCodexUsageJsonl,
+  parseGeminiUsageFile,
+  parseKiloUsageSqlite,
+  parseOpenCodeUsageFile,
+  parseOpenCodeUsageSqlite,
+  parsePiUsageJsonl,
+  summarizeAiUsage,
+  summarizeAiUsageBreakdowns,
+  summarizeAiUsageForRepo,
+  summarizeAiUsageForRepos,
+} from "./ai-usage/index.js";
 export {
   GitSnitchConfigError,
   getDefaultGitSnitchConfig,

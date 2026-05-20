@@ -8,10 +8,12 @@ import type { RepoReportOptions, ScanOptions, ScanPeriodOptions, ScanReportOptio
 import type { RepoReportData, ScanProjectReport, ScanReportData } from "./report-data.js";
 import type { RepositoryIdentity, RepositorySummary, ScannedRepositorySummary } from "./repos.js";
 import type { AsyncCommandRunner, LineCountResult } from "./git/types.js";
+import type { AiUsageStoreRoots, ReportAiUsageProjectSummary } from "./ai-usage/index.js";
 
 import { calculateCodeQualityMetrics, generateHealthRecommendations } from "./quality-metrics.js";
 import { classifyCommit } from "./commit-classifier.js";
 import { aggregateContributors, generateContributorStats } from "./analysis.js";
+import { collectAiUsageRecords, summarizeAiUsageForRepo, summarizeAiUsageForRepos } from "./ai-usage/index.js";
 import { findFileHotspots } from "./hotspots.js";
 import { DEFAULT_SCAN_EXCLUDE_PATTERNS, repoReportOptionsSchema, scanReportOptionsSchema } from "./options.js";
 import { discoverGitRepositories } from "./git/discovery.js";
@@ -25,10 +27,37 @@ export interface ReportGenerationDependencies {
   readonly runner?: AsyncCommandRunner;
   readonly generatedAt?: IsoDateString;
   readonly noGitHub?: boolean;
+  readonly aiUsageStoreRoots?: AiUsageStoreRoots;
+  readonly onProgress?: (event: ReportProgressEvent) => void;
+}
+
+export type ReportProgressEvent = RepoReportProgressEvent | ScanReportProgressEvent;
+
+export interface RepoReportProgressEvent {
+  readonly kind: "repo";
+  readonly repoPath: string;
+  readonly phase: "branches" | "commits" | "loc" | "repository" | "github" | "ai-usage" | "analysis";
+}
+
+export interface ScanReportProgressEvent {
+  readonly kind: "scan";
+  readonly directory: string;
+  readonly phase: "discover" | "repo-start" | "repo-skip" | "repo-complete" | "complete";
+  readonly repositoryPath?: string;
+  readonly relativePath?: string;
+  readonly discovered?: number;
+  readonly completed?: number;
+  readonly total?: number;
 }
 
 export interface GenerateScanReportOptions extends Omit<ScanReportOptions, "scan">, ScanPeriodOptions {
   readonly scan?: Partial<ScanOptions>;
+}
+
+interface PreparedRepoReport {
+  readonly options: RepoReportOptions;
+  readonly branchOptions: Pick<RepoReportOptions, "branches" | "allBranches">;
+  readonly commits: readonly CommitRecord[];
 }
 
 export class GitSnitchReportError extends Error {
@@ -43,26 +72,8 @@ export async function generateRepoReport(
   options: RepoReportOptions,
   dependencies: ReportGenerationDependencies = {},
 ): Promise<RepoReportData> {
-  const parsedOptions = parseRepoOptions(options);
   const runner = dependencies.runner ?? createGitCommandRunner();
-  const branchOptions = await resolveBranchOptions(parsedOptions, runner);
-  const commits = await getClassifiedCommits({ ...parsedOptions, ...branchOptions }, runner);
-  const loc = await countLinesOfCode(parsedOptions.repoPath, { exclude: DEFAULT_SCAN_EXCLUDE_PATTERNS });
-  const repositoryInfo = await getRepositoryInfo({ repoPath: parsedOptions.repoPath, runner });
-  const github = commits.length > 0 && !dependencies.noGitHub && !parsedOptions.noGitHub && repositoryInfo.remoteUrl
-    ? await fetchGitHubRepoMeta(repositoryInfo.remoteUrl, runner)
-    : undefined;
-  const contributors = generateContributorStats(commits);
-
-  return {
-    kind: "repo",
-    generatedAt: dependencies.generatedAt ?? new Date().toISOString(),
-    repository: summarizeRepository(repositoryInfo, commits, contributors.length, github),
-    options: { ...parsedOptions, ...branchOptions },
-    commits,
-    contributors,
-    analysis: analyzeRepository(commits, loc, contributors),
-  };
+  return completeRepoReport(await prepareRepoReport(options, runner, dependencies), runner, dependencies);
 }
 
 /** Generates the JSON-safe public report data for a recursive repository scan. */
@@ -74,26 +85,69 @@ export async function generateScanReport(
   const parsedOptions = parseScanOptions({ ...options, ...periodOptions });
   const runner = dependencies.runner ?? createGitCommandRunner();
   const generatedAt = dependencies.generatedAt ?? new Date().toISOString();
+  dependencies.onProgress?.({ kind: "scan", directory: parsedOptions.directory, phase: "discover" });
   const discovered = await discoverGitRepositories(parsedOptions.directory, {
     maxDepth: parsedOptions.scan.maxDepth,
     exclude: parsedOptions.scan.excludePatterns,
   });
+  dependencies.onProgress?.({ kind: "scan", directory: parsedOptions.directory, phase: "discover", discovered: discovered.length });
+  const aiUsageRecords = parsedOptions.aiUsage === true
+    ? await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots })
+    : undefined;
 
+  let completed = 0;
   const settled = await Promise.allSettled(
-    discovered.map(async (repository): Promise<ScanProjectReport> => {
-      const report = await generateRepoReport(
-        {
-          ...repoOptionsFromScanOptions(parsedOptions, repository.path),
-          allBranches: true,
-        },
-        { runner, generatedAt, noGitHub: dependencies.noGitHub || parsedOptions.noGitHub },
+    discovered.map(async (repository): Promise<ScanProjectReport | undefined> => {
+      dependencies.onProgress?.({
+        kind: "scan",
+        directory: parsedOptions.directory,
+        phase: "repo-start",
+        repositoryPath: repository.path,
+        relativePath: repository.relativePath,
+        completed,
+        total: discovered.length,
+      });
+      const prepared = await prepareRepoReport(
+        { ...repoOptionsFromScanOptions(parsedOptions, repository.path), allBranches: true, aiUsage: undefined },
+        runner,
+        dependencies,
       );
+      if (prepared.commits.length === 0) {
+        completed += 1;
+        dependencies.onProgress?.({
+          kind: "scan",
+          directory: parsedOptions.directory,
+          phase: "repo-skip",
+          repositoryPath: repository.path,
+          relativePath: repository.relativePath,
+          completed,
+          total: discovered.length,
+        });
+        return undefined;
+      }
+
+      const report = await completeRepoReport(
+        prepared,
+        runner,
+        { ...dependencies, generatedAt, noGitHub: dependencies.noGitHub || parsedOptions.noGitHub },
+      );
+      completed += 1;
+      dependencies.onProgress?.({
+        kind: "scan",
+        directory: parsedOptions.directory,
+        phase: "repo-complete",
+        repositoryPath: repository.path,
+        relativePath: repository.relativePath,
+        completed,
+        total: discovered.length,
+      });
       return {
         repository: summarizeScannedRepository(report.repository, repository.relativePath),
         report,
       };
     }),
   );
+  dependencies.onProgress?.({ kind: "scan", directory: parsedOptions.directory, phase: "complete", completed, total: discovered.length });
 
   for (const [index, result] of settled.entries()) {
     if (result.status === "rejected") {
@@ -104,12 +158,33 @@ export async function generateScanReport(
 
   const allProjects = settled
     .filter(
-      (result): result is PromiseFulfilledResult<ScanProjectReport> =>
-        result.status === "fulfilled",
+      (result): result is PromiseFulfilledResult<ScanProjectReport> => result.status === "fulfilled" && result.value !== undefined,
     )
     .map((result) => result.value);
 
-  const projects = allProjects.filter((project) => project.report.repository.totalCommits > 0);
+  const projectsWithoutAiUsage = allProjects;
+  const aiUsageByRepo = aiUsageRecords === undefined
+    ? undefined
+    : summarizeAiUsageForRepos(
+      aiUsageRecords,
+      projectsWithoutAiUsage.map((project) => project.report.repository.rootPath),
+      { since: parsedOptions.since, until: parsedOptions.until },
+    );
+  const projects = aiUsageByRepo === undefined
+    ? projectsWithoutAiUsage
+    : projectsWithoutAiUsage.map((project, index) => {
+      const usage = aiUsageByRepo.projects[index];
+      if (usage === undefined) {
+        return project;
+      }
+      return {
+        ...project,
+        report: {
+          ...project.report,
+          aiUsage: toReportAiUsageProjectSummary(usage),
+        },
+      };
+    });
 
   return {
     kind: "scan",
@@ -117,8 +192,80 @@ export async function generateScanReport(
     directory: parsedOptions.directory,
     options: parsedOptions,
     projects,
-    analysis: analyzeScan(projects),
+    analysis: {
+      ...analyzeScan(projects),
+      ...(aiUsageByRepo === undefined ? {} : { aiUsage: aiUsageByRepo.matchedTotal }),
+    },
   };
+}
+
+function toReportAiUsageProjectSummary(summary: ReportAiUsageProjectSummary): ReportAiUsageProjectSummary {
+  return {
+    records: summary.records,
+    tokens: summary.tokens,
+    cost: summary.cost,
+    breakdowns: summary.breakdowns,
+  };
+}
+
+async function prepareRepoReport(
+  options: RepoReportOptions,
+  runner: AsyncCommandRunner,
+  dependencies: ReportGenerationDependencies,
+): Promise<PreparedRepoReport> {
+  const parsedOptions = parseRepoOptions(options);
+  dependencies.onProgress?.({ kind: "repo", repoPath: parsedOptions.repoPath, phase: "branches" });
+  const branchOptions = await resolveBranchOptions(parsedOptions, runner);
+  dependencies.onProgress?.({ kind: "repo", repoPath: parsedOptions.repoPath, phase: "commits" });
+  const commits = await getClassifiedCommits({ ...parsedOptions, ...branchOptions }, runner);
+  return { options: parsedOptions, branchOptions, commits };
+}
+
+async function completeRepoReport(
+  prepared: PreparedRepoReport,
+  runner: AsyncCommandRunner,
+  dependencies: ReportGenerationDependencies,
+): Promise<RepoReportData> {
+  const { options, branchOptions, commits } = prepared;
+  dependencies.onProgress?.({ kind: "repo", repoPath: options.repoPath, phase: "loc" });
+  const loc = await countLinesOfCode(options.repoPath, { exclude: DEFAULT_SCAN_EXCLUDE_PATTERNS });
+  dependencies.onProgress?.({ kind: "repo", repoPath: options.repoPath, phase: "repository" });
+  const repositoryInfo = await getRepositoryInfo({ repoPath: options.repoPath, runner });
+  const shouldFetchGitHub = commits.length > 0 && !dependencies.noGitHub && !options.noGitHub && repositoryInfo.remoteUrl !== undefined;
+  if (shouldFetchGitHub) {
+    dependencies.onProgress?.({ kind: "repo", repoPath: options.repoPath, phase: "github" });
+  }
+  const github = shouldFetchGitHub
+    ? await fetchGitHubRepoMeta(repositoryInfo.remoteUrl, runner)
+    : undefined;
+  const contributors = generateContributorStats(commits);
+  const aiUsage = options.aiUsage === true
+    ? await summarizeRepoAiUsage(options, dependencies)
+    : undefined;
+  dependencies.onProgress?.({ kind: "repo", repoPath: options.repoPath, phase: "analysis" });
+
+  return {
+    kind: "repo",
+    generatedAt: dependencies.generatedAt ?? new Date().toISOString(),
+    repository: summarizeRepository(repositoryInfo, commits, contributors.length, github),
+    options: { ...options, ...branchOptions },
+    commits,
+    contributors,
+    analysis: analyzeRepository(commits, loc, contributors),
+    ...(aiUsage === undefined ? {} : { aiUsage }),
+  };
+}
+
+async function summarizeRepoAiUsage(
+  options: RepoReportOptions,
+  dependencies: ReportGenerationDependencies,
+): Promise<ReportAiUsageProjectSummary> {
+  dependencies.onProgress?.({ kind: "repo", repoPath: options.repoPath, phase: "ai-usage" });
+  return toReportAiUsageProjectSummary(summarizeAiUsageForRepo(
+    await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots }),
+    options.repoPath,
+    { since: options.since, until: options.until },
+  ));
 }
 
 export function parseScanPeriod(
@@ -318,6 +465,7 @@ function repoOptionsFromScanOptions(options: ScanReportOptions, repoPath: string
     since: options.since,
     until: options.until,
     templatePath: options.templatePath,
+    ...(options.aiUsage === undefined ? {} : { aiUsage: options.aiUsage }),
     repoPath,
     branches: [],
     allBranches: false,

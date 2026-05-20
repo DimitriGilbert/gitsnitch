@@ -148,6 +148,7 @@ function anonymizeRepoReport(report: RepoReportData, ctx: AnonymizationContext):
     commits: report.commits.map((commit) => anonymizeCommit(commit, ctx)),
     contributors: report.contributors.map((c) => anonymizeContributor(c, ctx)),
     analysis: anonymizeRepositoryAnalysis(report.analysis, ctx),
+    ...(report.aiUsage === undefined ? {} : { aiUsage: report.aiUsage }),
   };
 }
 

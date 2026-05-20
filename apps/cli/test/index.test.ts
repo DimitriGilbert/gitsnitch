@@ -60,6 +60,61 @@ describe("cli package entrypoint", () => {
     expect(output.stderr()).toBe("");
   });
 
+  it("prints repo progress to stderr without contaminating JSON stdout", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "verbose-json-repo", "Verbose JSON fixture commit");
+    const output = createBufferedOutput();
+
+    const code = await runCli(["repo", repoPath, "--json", "--verbose"], { io: output.io });
+
+    expect(code, output.stderr()).toBe(0);
+    expect(parseRecord(output.stdout()).kind).toBe("repo");
+    expect(output.stderr()).toContain("repo: resolving branches");
+    expect(output.stderr()).toContain("repo: reading commits");
+    expect(output.stderr()).toContain(repoPath);
+  }, 120_000);
+
+  it("emits repo JSON with AI usage only when --ai-usage is supplied and filters by repo path and timeframe", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "ai-json-repo", "AI fixture commit");
+    const otherRepoPath = await createFixtureRepo(workspace, "ai-other-repo", "AI other fixture commit");
+    const aiUsageRoot = join(workspace, "pi-usage");
+    await writePiUsage(aiUsageRoot, "matched", repoPath, [
+      { id: "inside", timestamp: "2024-01-03T00:00:00.000Z", input: 10, output: 5 },
+      { id: "outside-time", timestamp: "2024-02-03T00:00:00.000Z", input: 100, output: 50 },
+    ]);
+    await writePiUsage(aiUsageRoot, "other", otherRepoPath, [
+      { id: "other", timestamp: "2024-01-03T00:00:00.000Z", input: 200, output: 100 },
+    ]);
+
+    const plainOutput = createBufferedOutput();
+    const plainCode = await runCli(["repo", repoPath, "--json"], { io: plainOutput.io, aiUsageStoreRoots: { pi: [aiUsageRoot] } });
+
+    expect(plainCode, plainOutput.stderr()).toBe(0);
+    expect(parseRecord(plainOutput.stdout()).aiUsage).toBeUndefined();
+
+    const output = createBufferedOutput();
+    const code = await runCli([
+      "repo",
+      repoPath,
+      "--json",
+      "--ai-usage",
+      "--since",
+      "2024-01-01T00:00:00.000Z",
+      "--until",
+      "2024-01-31T23:59:59.000Z",
+    ], { io: output.io, aiUsageStoreRoots: { pi: [aiUsageRoot] } });
+
+    expect(code, output.stderr()).toBe(0);
+    const report = parseRecord(output.stdout());
+    const aiUsage = getRecord(report, "aiUsage");
+    expect(aiUsage.repoPath).toBeUndefined();
+    expect(aiUsage.records).toBe(1);
+    expect(getRecord(aiUsage, "tokens").total).toBe(15);
+    expect(getRecordArray(getRecord(aiUsage, "breakdowns"), "byClient")).toEqual([expect.objectContaining({ key: "pi", records: 1 })]);
+    expect(output.stdout()).not.toContain(aiUsageRoot);
+  }, 120_000);
+
   it("validates the exact repo JSON contract, config loading, and CLI branch override precedence", async () => {
     const workspace = await createTempDirectory();
     const repoPath = await createBranchingFixtureRepo(workspace, "schema-repo", {
@@ -274,6 +329,75 @@ describe("cli package entrypoint", () => {
     expect(getRecordArray(overrideReport, "projects")).toHaveLength(1);
   }, 120_000);
 
+  it("prints scan progress with the active repository to stderr", async () => {
+    const workspace = await createTempDirectory();
+    const scanRoot = join(workspace, "verbose-scan");
+    await mkdir(scanRoot, { recursive: true });
+    await createFixtureRepo(scanRoot, "visible-repo", "Visible scan commit");
+    const output = createBufferedOutput();
+
+    const code = await runCli(["scan", scanRoot, "--json", "--verbose"], { io: output.io });
+
+    expect(code, output.stderr()).toBe(0);
+    expect(parseRecord(output.stdout()).kind).toBe("scan");
+    expect(output.stderr()).toContain("scan: discovering repositories");
+    expect(output.stderr()).toContain("scan: analyzing repository [1/1] visible-repo");
+    expect(output.stderr()).toContain("scan: completed repository [1/1] visible-repo");
+  }, 120_000);
+
+  it("skips stale scan repositories before local metadata and GitHub phases", async () => {
+    const workspace = await createTempDirectory();
+    const scanRoot = join(workspace, "stale-scan");
+    await mkdir(scanRoot, { recursive: true });
+    await createFixtureRepo(scanRoot, "stale-repo", "Stale scan commit");
+    const output = createBufferedOutput();
+
+    const code = await runCli(["scan", scanRoot, "--json", "--verbose", "--since", "2025-01-01T00:00:00.000Z"], { io: output.io });
+
+    expect(code, output.stderr()).toBe(0);
+    expect(getRecordArray(parseRecord(output.stdout()), "projects")).toEqual([]);
+    expect(output.stderr()).toContain("scan: skipped repository [1/1] stale-repo (no commits in timeframe)");
+    expect(output.stderr()).not.toContain("repo: counting lines of code");
+    expect(output.stderr()).not.toContain("repo: reading repository metadata");
+    expect(output.stderr()).not.toContain("repo: checking GitHub metadata");
+  }, 120_000);
+
+  it("emits scan JSON with per-project AI usage and scan-level aggregate constrained to matched projects", async () => {
+    const workspace = await createTempDirectory();
+    const scanRoot = join(workspace, "ai-scan");
+    await mkdir(scanRoot, { recursive: true });
+    const firstRepo = await createFixtureRepo(scanRoot, "first-ai-repo", "First AI scan commit");
+    const secondRepo = await createFixtureRepo(scanRoot, "second-ai-repo", "Second AI scan commit");
+    const outsideRepo = await createFixtureRepo(workspace, "outside-ai-repo", "Outside AI scan commit");
+    const aiUsageRoot = join(workspace, "scan-pi-usage");
+    await writePiUsage(aiUsageRoot, "first", firstRepo, [{ id: "first", timestamp: "2024-01-03T00:00:00.000Z", input: 10, output: 5 }]);
+    await writePiUsage(aiUsageRoot, "second", secondRepo, [{ id: "second", timestamp: "2024-01-04T00:00:00.000Z", input: 20, output: 7 }]);
+    await writePiUsage(aiUsageRoot, "outside", outsideRepo, [{ id: "outside", timestamp: "2024-01-04T00:00:00.000Z", input: 200, output: 100 }]);
+
+    const output = createBufferedOutput();
+    const code = await runCli(["scan", scanRoot, "--json", "--ai-usage", "--period", "5y"], {
+      io: output.io,
+      aiUsageStoreRoots: { pi: [aiUsageRoot] },
+    });
+
+    expect(code, output.stderr()).toBe(0);
+    const report = parseRecord(output.stdout());
+    const projects = getRecordArray(report, "projects");
+    expect(projects).toHaveLength(2);
+    const projectUsageTotals = projects.map((project) => getRecord(getRecord(project, "report"), "aiUsage"));
+    const projectRecords = projectUsageTotals.reduce((sum, usage) => sum + getNumber(usage, "records"), 0);
+    const projectTokens = projectUsageTotals.reduce((sum, usage) => sum + getNumber(getRecord(usage, "tokens"), "total"), 0);
+    const aggregate = getRecord(getRecord(report, "analysis"), "aiUsage");
+    expect(projectRecords).toBe(2);
+    expect(projectTokens).toBe(42);
+    expect(getNumber(aggregate, "records")).toBe(projectRecords);
+    expect(getNumber(getRecord(aggregate, "tokens"), "total")).toBe(projectTokens);
+    expect(getRecordArray(getRecord(aggregate, "breakdowns"), "byClient")).toEqual([expect.objectContaining({ key: "pi", records: projectRecords })]);
+    expect(getRecordArray(getRecord(aggregate, "breakdowns"), "byModel")).toEqual([expect.objectContaining({ key: "claude-3-5-sonnet", records: projectRecords })]);
+    expect(output.stdout()).not.toContain(outsideRepo);
+    expect(output.stdout()).not.toContain(aiUsageRoot);
+  }, 120_000);
+
   it("declares npm package files required for the CLI release and excludes test-only paths", async () => {
     const repositoryRoot = join(process.cwd(), "../..");
     const cliPackage = await readPackageJson(join(repositoryRoot, "apps/cli/package.json"));
@@ -282,7 +406,7 @@ describe("cli package entrypoint", () => {
     const uiPackage = await readPackageJson(join(repositoryRoot, "packages/ui/package.json"));
     const webPackage = await readPackageJson(join(repositoryRoot, "apps/web/package.json"));
 
-    expect(getStringArray(cliPackage, "files")).toEqual(["dist", "package.json"]);
+    expect(getStringArray(cliPackage, "files")).toEqual(["dist", "README.md", "package.json"]);
     expect(getStringArray(corePackage, "files")).toEqual(["dist", "src", "package.json"]);
     expect(getStringArray(rendererPackage, "files")).toEqual(["dist", "report-template.html", "src", "vite.config.ts", "package.json"]);
     expect(getStringArray(uiPackage, "files")).toEqual(["src", "postcss.config.mjs", "package.json"]);
@@ -568,6 +692,30 @@ async function createFixtureRepo(parentDirectory: string, name: string, message:
   return repoPath;
 }
 
+async function writePiUsage(
+  root: string,
+  sessionId: string,
+  repoPath: string,
+  messages: readonly { readonly id: string; readonly timestamp: string; readonly input: number; readonly output: number }[],
+): Promise<void> {
+  await mkdir(root, { recursive: true });
+  const lines = [
+    { type: "session", id: sessionId, cwd: repoPath, timestamp: messages[0]?.timestamp ?? "2024-01-01T00:00:00.000Z" },
+    ...messages.map((message) => ({
+      type: "message",
+      id: message.id,
+      timestamp: message.timestamp,
+      message: {
+        role: "assistant",
+        model: "claude-3-5-sonnet",
+        provider: "anthropic",
+        usage: { input: message.input, output: message.output },
+      },
+    })),
+  ];
+  await writeFile(join(root, `${sessionId}.jsonl`), lines.map((line) => JSON.stringify(line)).join("\n"), "utf8");
+}
+
 async function createBranchingFixtureRepo(
   parentDirectory: string,
   name: string,
@@ -667,6 +815,14 @@ function getString(record: JsonRecord, key: string): string {
   const value = record[key];
   if (typeof value !== "string") {
     throw new Error(`Expected ${key} to be a string.`);
+  }
+  return value;
+}
+
+function getNumber(record: JsonRecord, key: string): number {
+  const value = record[key];
+  if (typeof value !== "number") {
+    throw new Error(`Expected ${key} to be a number.`);
   }
   return value;
 }

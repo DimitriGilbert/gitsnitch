@@ -7,6 +7,7 @@ import type { ContributorSummary } from "./contributors.js";
 import type { IsoDateString } from "./json.js";
 import type { RepoReportOptions, ScanReportOptions } from "./options.js";
 import type { RepositorySummary, ScannedRepositorySummary } from "./repos.js";
+import type { AiTokenBreakdown, AiUsageBreakdownItem, AiUsageBreakdowns, ReportAiUsageProjectSummary } from "./ai-usage/index.js";
 import { isoDateStringSchema } from "./options.js";
 
 export interface RepoReportData {
@@ -17,6 +18,7 @@ export interface RepoReportData {
   readonly commits: readonly CommitRecord[];
   readonly contributors: readonly ContributorSummary[];
   readonly analysis: RepositoryAnalysis;
+  readonly aiUsage?: ReportAiUsageProjectSummary;
   readonly anonymization?: ReportAnonymizationMeta;
 }
 
@@ -58,7 +60,39 @@ const reportOptionsShape = {
   since: isoDateStringSchema.optional(),
   until: isoDateStringSchema.optional(),
   templatePath: z.string().min(1).optional(),
+  aiUsage: z.boolean().optional(),
 };
+
+const aiTokenBreakdownSchema: z.ZodType<AiTokenBreakdown> = z.object({
+  input: z.number().int().nonnegative(),
+  output: z.number().int().nonnegative(),
+  cacheRead: z.number().int().nonnegative(),
+  cacheWrite: z.number().int().nonnegative(),
+  reasoning: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+});
+
+const aiUsageSummaryShape = {
+  records: z.number().int().nonnegative(),
+  tokens: aiTokenBreakdownSchema,
+  cost: z.number().nonnegative(),
+};
+
+const aiUsageBreakdownItemSchema: z.ZodType<AiUsageBreakdownItem> = z.object({
+  key: z.string(),
+  ...aiUsageSummaryShape,
+});
+
+const aiUsageBreakdownsSchema: z.ZodType<AiUsageBreakdowns> = z.object({
+  byClient: z.array(aiUsageBreakdownItemSchema),
+  byModel: z.array(aiUsageBreakdownItemSchema),
+  byDay: z.array(aiUsageBreakdownItemSchema),
+});
+
+const reportAiUsageProjectSummarySchema: z.ZodType<ReportAiUsageProjectSummary> = z.object({
+  ...aiUsageSummaryShape,
+  breakdowns: aiUsageBreakdownsSchema,
+});
 
 const repositorySummaryShape = {
   name: z.string(),
@@ -213,6 +247,7 @@ const scanAnalysisSchema: z.ZodType<ScanAnalysis> = z.object({
   totalRepositories: z.number().int().nonnegative(),
   languages: z.array(languageStatSchema),
   qualitySignals: z.array(qualitySignalSchema),
+  aiUsage: reportAiUsageProjectSummarySchema.optional(),
 });
 
 export const repoReportDataSchema: z.ZodType<RepoReportData> = z.object({
@@ -223,6 +258,7 @@ export const repoReportDataSchema: z.ZodType<RepoReportData> = z.object({
   commits: z.array(commitRecordSchema),
   contributors: z.array(contributorSummarySchema),
   analysis: repositoryAnalysisSchema,
+  aiUsage: reportAiUsageProjectSummarySchema.optional(),
   anonymization: reportAnonymizationMetaSchema.optional(),
 });
 

@@ -42,6 +42,7 @@ export interface ReportOptions {
   readonly templatePath?: string;
   readonly anon?: AnonOptions;
   readonly noGitHub?: boolean;
+  readonly aiUsage?: boolean;
 }
 
 export interface ScanOptions {
@@ -103,6 +104,7 @@ const reportOptionsSchema = z.object({
   templatePath: z.string().min(1).optional(),
   anon: anonOptionsSchema.optional(),
   noGitHub: z.boolean().optional(),
+  aiUsage: z.boolean().optional(),
 });
 
 export const scanPeriodOptionsSchema = z.object({

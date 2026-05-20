@@ -21,7 +21,7 @@ import {
 } from "recharts";
 import type { ReactNode } from "react";
 
-import type { CommitRecord, ContributorSummary, RepoReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
+import type { AiUsageBreakdownItem, CommitRecord, ContributorSummary, RepoReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
 
 import { EmptyState } from "./empty-state.js";
 
@@ -42,6 +42,7 @@ export type VelocityPoint = { readonly period: string; readonly commits: number;
 export type CodeOwnershipPoint = { readonly owner: string; readonly additions: number; readonly deletions: number; readonly filesChanged: number };
 export type ProjectComparisonPoint = { readonly project: string; readonly commits: number; readonly contributors: number; readonly filesChanged: number };
 export type ActivityHeatmapCell = { readonly day: string; readonly hour: string; readonly commits: number };
+export type AiUsageBreakdownPoint = { readonly name: string; readonly messages: number; readonly tokens: number; readonly cost: number };
 
 type ChartPanelProps = {
   readonly title: string;
@@ -211,6 +212,14 @@ export function deriveProjectsComparisonData(projects: readonly ScanProjectRepor
       filesChanged: new Set(project.report.commits.flatMap((commit) => commit.files.map((file) => file.path))).size,
     }))
     .sort((left, right) => right.commits - left.commits || left.project.localeCompare(right.project));
+}
+
+export function deriveAiUsageBreakdownData(rows: readonly AiUsageBreakdownItem[]): readonly AiUsageBreakdownPoint[] {
+  return rows
+    .filter((row) => row.records > 0 || row.tokens.total > 0 || row.cost > 0)
+    .map((row) => ({ name: row.key, messages: row.records, tokens: row.tokens.total, cost: row.cost }))
+    .sort((left, right) => right.tokens - left.tokens || right.messages - left.messages || left.name.localeCompare(right.name))
+    .slice(0, 8);
 }
 
 export function deriveActivityHeatmapData(commits: readonly CommitRecord[]): readonly ActivityHeatmapCell[] {
@@ -448,6 +457,23 @@ export function ProjectsComparisonChart({ data }: { readonly data: readonly Proj
           <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="commits" fill="var(--color-commits)" radius={[0, 3, 3, 0]} {...staticChartProps} />
           <Bar dataKey="contributors" fill="var(--color-contributors)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+        </BarChart>
+      </ChartContainer>
+    </ChartPanel>
+  );
+}
+
+export function AiUsageBreakdownChart({ title, description, data }: { readonly title: string; readonly description: string; readonly data: readonly AiUsageBreakdownPoint[] }) {
+  return (
+    <ChartPanel title={title} description={description} isEmpty={!hasPositiveValue(data, (item) => [item.messages, item.tokens])} emptyTitle={`No ${title.toLowerCase()} to chart`} emptyDescription="AI usage charts need matched local assistant records with model or harness metadata.">
+      <ChartContainer config={{ tokens: { label: "Tokens", color: chartPalette[2] }, messages: { label: "Messages", color: chartPalette[4] } }} className="h-72 w-full">
+        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" hide />
+          <YAxis dataKey="name" type="category" width={124} tickLine={false} axisLine={false} />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="tokens" fill="var(--color-tokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="messages" fill="var(--color-messages)" radius={[0, 3, 3, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>

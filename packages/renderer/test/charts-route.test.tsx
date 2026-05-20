@@ -26,6 +26,22 @@ function emptyRepoReport(): RepoReportData {
   };
 }
 
+function repoReportWithAiUsage(): RepoReportData {
+  return {
+    ...repoReportFixture,
+    aiUsage: {
+      records: 3,
+      tokens: { input: 120, output: 80, cacheRead: 20, cacheWrite: 10, reasoning: 15, total: 245 },
+      cost: 0.12,
+      breakdowns: {
+        byClient: [{ key: "opencode", records: 3, tokens: { input: 120, output: 80, cacheRead: 20, cacheWrite: 10, reasoning: 15, total: 245 }, cost: 0.12 }],
+        byModel: [{ key: "gpt-5.5", records: 3, tokens: { input: 120, output: 80, cacheRead: 20, cacheWrite: 10, reasoning: 15, total: 245 }, cost: 0.12 }],
+        byDay: [{ key: "2024-01-02", records: 3, tokens: { input: 120, output: 80, cacheRead: 20, cacheWrite: 10, reasoning: 15, total: 245 }, cost: 0.12 }],
+      },
+    },
+  };
+}
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -72,6 +88,16 @@ describe("charts route", () => {
     expect(screen.getByRole("heading", { name: "No line churn to chart" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "No language distribution to chart" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "No activity heatmap to show" })).toBeTruthy();
+  });
+
+  it("renders AI usage model and harness charts for repo data", () => {
+    render(<ChartsRoute report={repoReportWithAiUsage()} />);
+
+    expect(screen.getByText("AI usage")).toBeTruthy();
+    expect(screen.getByText("AI usage by model")).toBeTruthy();
+    expect(screen.getByText("AI usage by harness")).toBeTruthy();
+    expect(screen.getByText("gpt-5.5")).toBeTruthy();
+    expect(screen.getAllByText("opencode").length).toBeGreaterThan(0);
   });
 });
 

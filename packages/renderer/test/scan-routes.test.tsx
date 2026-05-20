@@ -77,6 +77,67 @@ function multiProjectScanReport(): ScanReportData {
   };
 }
 
+function scanReportWithAiUsage(): ScanReportData {
+  const report = multiProjectScanReport();
+  const firstProject = report.projects.at(0);
+  const secondProject = report.projects.at(1);
+
+  if (!firstProject || !secondProject) {
+    throw new Error("Expected scan fixture to include two projects");
+  }
+
+  const firstUsage = {
+    records: 4,
+    tokens: { input: 200, output: 100, cacheRead: 30, cacheWrite: 20, reasoning: 50, total: 400 },
+    cost: 0.25,
+    breakdowns: {
+      byClient: [{ key: "pi", records: 4, tokens: { input: 200, output: 100, cacheRead: 30, cacheWrite: 20, reasoning: 50, total: 400 }, cost: 0.25 }],
+      byModel: [{ key: "pi-default", records: 4, tokens: { input: 200, output: 100, cacheRead: 30, cacheWrite: 20, reasoning: 50, total: 400 }, cost: 0.25 }],
+      byDay: [{ key: "2024-01-02", records: 4, tokens: { input: 200, output: 100, cacheRead: 30, cacheWrite: 20, reasoning: 50, total: 400 }, cost: 0.25 }],
+    },
+  };
+  const secondUsage = {
+    records: 2,
+    tokens: { input: 120, output: 60, cacheRead: 10, cacheWrite: 5, reasoning: 5, total: 200 },
+    cost: 0.05,
+    breakdowns: {
+      byClient: [{ key: "claude", records: 2, tokens: { input: 120, output: 60, cacheRead: 10, cacheWrite: 5, reasoning: 5, total: 200 }, cost: 0.05 }],
+      byModel: [{ key: "claude-sonnet", records: 2, tokens: { input: 120, output: 60, cacheRead: 10, cacheWrite: 5, reasoning: 5, total: 200 }, cost: 0.05 }],
+      byDay: [{ key: "2024-01-03", records: 2, tokens: { input: 120, output: 60, cacheRead: 10, cacheWrite: 5, reasoning: 5, total: 200 }, cost: 0.05 }],
+    },
+  };
+
+  return {
+    ...report,
+    projects: [
+      { ...firstProject, report: { ...firstProject.report, aiUsage: firstUsage } },
+      { ...secondProject, report: { ...secondProject.report, aiUsage: secondUsage } },
+    ],
+    analysis: {
+      ...report.analysis,
+      aiUsage: {
+        records: 6,
+        tokens: { input: 320, output: 160, cacheRead: 40, cacheWrite: 25, reasoning: 55, total: 600 },
+        cost: 0.3,
+        breakdowns: {
+          byClient: [
+            { key: "claude", records: 2, tokens: { input: 120, output: 60, cacheRead: 10, cacheWrite: 5, reasoning: 5, total: 200 }, cost: 0.05 },
+            { key: "pi", records: 4, tokens: { input: 200, output: 100, cacheRead: 30, cacheWrite: 20, reasoning: 50, total: 400 }, cost: 0.25 },
+          ],
+          byModel: [
+            { key: "claude-sonnet", records: 2, tokens: { input: 120, output: 60, cacheRead: 10, cacheWrite: 5, reasoning: 5, total: 200 }, cost: 0.05 },
+            { key: "pi-default", records: 4, tokens: { input: 200, output: 100, cacheRead: 30, cacheWrite: 20, reasoning: 50, total: 400 }, cost: 0.25 },
+          ],
+          byDay: [
+            { key: "2024-01-02", records: 4, tokens: { input: 200, output: 100, cacheRead: 30, cacheWrite: 20, reasoning: 50, total: 400 }, cost: 0.25 },
+            { key: "2024-01-03", records: 2, tokens: { input: 120, output: 60, cacheRead: 10, cacheWrite: 5, reasoning: 5, total: 200 }, cost: 0.05 },
+          ],
+        },
+      },
+    },
+  };
+}
+
 function emptyScanReport(): ScanReportData {
   return {
     ...scanReportFixture,
@@ -174,6 +235,26 @@ describe("scan report routes", () => {
     expect(screen.queryByText("Katherine Johnson")).toBeNull();
   });
 
+  it("renders scan aggregate AI usage and per-project AI usage columns", () => {
+    render(<ScanOverview report={scanReportWithAiUsage()} />);
+
+    expect(screen.getByText("Scan AI usage")).toBeTruthy();
+    expect(screen.getByText("600")).toBeTruthy();
+    expect(screen.getByText("$0.30")).toBeTruthy();
+    expect(screen.getByText("AI messages")).toBeTruthy();
+    expect(screen.getByText("AI tokens")).toBeTruthy();
+    expect(screen.getByText("AI cost")).toBeTruthy();
+    expect(screen.getByText("Model breakdown")).toBeTruthy();
+    expect(screen.getByText("Client breakdown")).toBeTruthy();
+    expect(screen.getByText("pi-default")).toBeTruthy();
+    expect(screen.getByText("claude-sonnet")).toBeTruthy();
+    expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("claude").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("400").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$0.25").length).toBeGreaterThan(0);
+    expect(screen.queryByText("/workspace/services/api")).toBeNull();
+  });
+
   it("explains empty scan results with scan scope guidance", () => {
     render(<ScanOverview report={emptyScanReport()} />);
 
@@ -206,6 +287,42 @@ describe("scan report routes", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Commits" }));
     expect(screen.getByRole("heading", { name: "Commits ledger" })).toBeTruthy();
+  });
+
+  it("renders per-project AI usage charts in scan project charts", () => {
+    const report = scanReportWithAiUsage();
+    const entry = deriveScanProjectRouteEntries(report).at(0);
+
+    if (!entry) {
+      throw new Error("Expected scan fixture to include a project route entry");
+    }
+
+    render(<ScanProjectRoute report={report} projectSlug={entry.slug} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Charts" }));
+
+    expect(screen.getByText("AI usage")).toBeTruthy();
+    expect(screen.getByText("AI usage by model")).toBeTruthy();
+    expect(screen.getByText("AI usage by harness")).toBeTruthy();
+    expect(screen.getByText("pi-default")).toBeTruthy();
+    expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
+  });
+
+  it("renders per-project AI usage in the scan drill-down overview", () => {
+    const report = scanReportWithAiUsage();
+    const entry = deriveScanProjectRouteEntries(report).at(0);
+
+    if (!entry) {
+      throw new Error("Expected scan fixture to include a project route entry");
+    }
+
+    render(<ScanProjectRoute report={report} projectSlug={entry.slug} />);
+
+    expect(screen.getByRole("heading", { name: "api" })).toBeTruthy();
+    expect(screen.getByText("AI usage")).toBeTruthy();
+    expect(screen.getByText("Client breakdown")).toBeTruthy();
+    expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("400").length).toBeGreaterThan(0);
   });
 
   it("renders route mismatch states instead of crashing", () => {
