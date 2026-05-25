@@ -12,11 +12,13 @@ import {
   ScanAiTokensBarChart,
   ScanChurnPieChart,
   ScanCommitBarChart,
+  ScanCommitTimelineChart,
   deriveLanguageDistributionData,
   deriveScanAiModelsData,
   deriveScanAiPerProjectData,
   deriveScanChurnData,
   deriveScanCommitData,
+  deriveScanCommitTimelineData,
 } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
 import { StatsGrid } from "./layout.js";
@@ -342,6 +344,8 @@ function CrossProjectContributors({ report }: { readonly report: ScanReportData 
 
 function ScanCharts({ report }: { readonly report: ScanReportData }) {
   const commitData = deriveScanCommitData(report.projects);
+  const timelineData = deriveScanCommitTimelineData(report.projects);
+  const projectNames = report.projects.map((project) => project.repository.name);
   const churnData = deriveScanChurnData(report.projects);
   const languageData = deriveLanguageDistributionData(report);
   const aiPerProject = deriveScanAiPerProjectData(report.projects);
@@ -351,6 +355,11 @@ function ScanCharts({ report }: { readonly report: ScanReportData }) {
     <section aria-label="Visual comparison">
       <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">Visual comparison</h2>
       <div className="grid gap-5 lg:grid-cols-3">
+        {timelineData.length > 0 ? (
+          <div className="lg:col-span-3">
+            <ScanCommitTimelineChart data={timelineData} projectNames={projectNames} />
+          </div>
+        ) : null}
         <ScanCommitBarChart data={commitData} />
         <ScanChurnPieChart data={churnData} />
         <LanguageDistributionChart data={languageData} />

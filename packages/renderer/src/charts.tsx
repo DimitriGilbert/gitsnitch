@@ -47,6 +47,7 @@ export type ScanCommitSlice = { readonly name: string; readonly commits: number 
 export type ScanChurnSlice = { readonly name: string; readonly additions: number; readonly deletions: number; readonly churn: number };
 export type ScanAiProjectSlice = { readonly name: string; readonly messages: number; readonly inputTokens: number; readonly outputTokens: number; readonly cacheTokens: number; readonly tokens: number };
 export type ScanAiModelSlice = { readonly name: string; readonly messages: number; readonly inputTokens: number; readonly outputTokens: number; readonly cacheTokens: number; readonly tokens: number };
+export type ScanCommitTimelinePoint = { readonly date: string; readonly [projectName: string]: number | string };
 
 type ChartPanelProps = {
   readonly title: string;
@@ -667,6 +668,90 @@ export function deriveScanAiModelsData(aiUsage: ReportAiUsageProjectSummary): re
       tokens: item.tokens.total,
     }))
     .sort((left, right) => right.messages - left.messages || left.name.localeCompare(right.name));
+}
+
+export function deriveScanCommitTimelineData(projects: readonly ScanProjectReport[]): readonly ScanCommitTimelinePoint[] {
+  const projectNames = projects.map((project) => project.repository.name);
+  const dayCounts = new Map<string, Map<string, number>>();
+
+  for (const project of projects) {
+    const name = project.repository.name;
+    for (const commit of project.report.commits) {
+      const date = commit.authoredAt.slice(0, 10);
+      let dayMap = dayCounts.get(date);
+      if (!dayMap) {
+        dayMap = new Map<string, number>();
+        dayCounts.set(date, dayMap);
+      }
+      dayMap.set(name, (dayMap.get(name) ?? 0) + 1);
+    }
+  }
+
+  if (dayCounts.size === 0) return [];
+
+  const sortedDates = [...dayCounts.keys()].sort();
+
+  return sortedDates.map((date) => {
+    const dayMap = dayCounts.get(date)!;
+    const point: Record<string, number | string> = { date };
+    for (const name of projectNames) {
+      point[name] = dayMap.get(name) ?? 0;
+    }
+    return point as ScanCommitTimelinePoint;
+  });
+}
+
+function projectColor(index: number, total: number): string {
+  const hue = (index * 360 / total + 15) % 360;
+  return `oklch(0.65 0.17 ${hue})`;
+}
+
+export function ScanCommitTimelineChart({ data, projectNames }: { readonly data: readonly ScanCommitTimelinePoint[]; readonly projectNames: readonly string[] }) {
+  const total = projectNames.length;
+  const config = projectNames.reduce<Record<string, { label: string; color: string }>>(
+    (acc, name, index) => {
+      const key = `project-${index}`;
+      acc[key] = { label: name, color: projectColor(index, total) };
+      return acc;
+    },
+    {},
+  );
+
+  return (
+    <ChartPanel
+      title="Daily commits by project"
+      description="Stacked commit activity over time, broken down by project."
+      isEmpty={data.length === 0}
+      emptyTitle="No commit timeline to chart"
+      emptyDescription="The timeline needs at least one scanned project with dated commits."
+    >
+      <ChartContainer config={config} className="h-72 w-full">
+        <AreaChart data={data} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+          <YAxis width={32} tickLine={false} axisLine={false} allowDecimals={false} />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          {projectNames.map((name, index) => {
+            const key = `project-${index}`;
+            return (
+              <Area
+                key={key}
+                type="monotone"
+                dataKey={name}
+                name={name}
+                stackId="commits"
+                stroke={`var(--color-${key})`}
+                fill={`var(--color-${key})`}
+                fillOpacity={0.35}
+                strokeWidth={1.5}
+                {...staticChartProps}
+              />
+            );
+          })}
+        </AreaChart>
+      </ChartContainer>
+    </ChartPanel>
+  );
 }
 
 function heatClass(commits: number) {
