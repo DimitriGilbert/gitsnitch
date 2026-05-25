@@ -1,11 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
-
 import type { CommitRecord, GitHubRepoMeta, RepoReportData, ReportData } from "@git-snitch/core";
 
 import { AiUsagePanel } from "./ai-usage.js";
 import { CommitActivityChart, deriveCommitActivityData } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
 import { StatsGrid } from "./layout.js";
+import { normalizeGitRemote } from "./remote-url.js";
+import { Section, SectionGrid, SectionHeader, SectionStat } from "./section.js";
 
 type StreakSummary =
   | {
@@ -99,6 +99,10 @@ function formatCompact(value: number) {
   return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en", { year: "numeric", month: "short", day: "numeric" });
+}
+
 function GitHubMetaBar({ meta }: { readonly meta: GitHubRepoMeta }) {
   const items: readonly string[] = [
     ...(meta.stars !== undefined && meta.stars > 0 ? [`Stars ${formatCompact(meta.stars)}`] : []),
@@ -116,37 +120,39 @@ function GitHubMetaBar({ meta }: { readonly meta: GitHubRepoMeta }) {
   }
 
   return (
-    <section className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border/50 bg-muted/25 px-4 py-3">
-      {items.map((item) => {
-        const spaceIndex = item.indexOf(" ");
-        const label = spaceIndex >= 0 ? item.slice(0, spaceIndex) : item;
-        const value = spaceIndex >= 0 ? item.slice(spaceIndex + 1) : undefined;
-        return (
-          <span key={item} className="text-sm text-muted-foreground">
-            {label}{value !== undefined ? (<>
+    <Section ariaLabel="GitHub repository metadata">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        {items.map((item) => {
+          const spaceIndex = item.indexOf(" ");
+          const label = spaceIndex >= 0 ? item.slice(0, spaceIndex) : item;
+          const value = spaceIndex >= 0 ? item.slice(spaceIndex + 1) : undefined;
+          return (
+            <span key={item} className="text-sm text-muted-foreground">
+              {label}{value !== undefined ? (<>
 {" "}<strong className="font-medium text-foreground">{value}</strong>
 </>) : null}
-          </span>
-        );
-      })}
-      {meta.homepageUrl !== undefined && meta.homepageUrl.length > 0 ? (
-        <a
-          className="text-sm text-muted-foreground hover:text-foreground"
-          href={meta.homepageUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Homepage
-        </a>
-      ) : null}
-      {topics.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {topics.map((topic) => (
-            <span key={topic} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{topic}</span>
-          ))}
-        </div>
-      ) : null}
-    </section>
+            </span>
+          );
+        })}
+        {meta.homepageUrl !== undefined && meta.homepageUrl.length > 0 ? (
+          <a
+            className="text-sm text-muted-foreground hover:text-foreground"
+            href={meta.homepageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Homepage
+          </a>
+        ) : null}
+        {topics.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {topics.map((topic) => (
+              <span key={topic} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{topic}</span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </Section>
   );
 }
 
@@ -180,24 +186,24 @@ function StreakCard({ streak }: { readonly streak: StreakSummary }) {
   }
 
   return (
-    <Card className="h-full overflow-hidden shadow-none transition-transform duration-500 ease-out hover:-translate-y-0.5">
-      <CardHeader className="space-y-2">
-        <CardTitle className="text-base font-semibold tracking-tight text-foreground">Commit streak</CardTitle>
-        <p className="text-sm leading-6 text-muted-foreground">Consecutive UTC commit days ending at the latest commit in this report.</p>
-      </CardHeader>
-      <CardContent className="grid grid-flow-dense gap-4 sm:grid-cols-2">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Current</p>
-          <p className="mt-2 text-4xl font-semibold tracking-tight text-foreground">{streak.current}</p>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">Ending {streak.anchorDate}</p>
-        </div>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Longest</p>
-          <p className="mt-2 text-4xl font-semibold tracking-tight text-foreground">{streak.longest}</p>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">Best consecutive-day run</p>
-        </div>
-      </CardContent>
-    </Card>
+    <Section ariaLabel="Commit streak">
+      <SectionHeader
+        title="Commit streak"
+        description="Consecutive UTC commit days ending at the latest commit in this report."
+      />
+      <SectionGrid cols={2}>
+        <SectionStat
+          label="Current"
+          value={String(streak.current)}
+          description={`Ending ${streak.anchorDate}`}
+        />
+        <SectionStat
+          label="Longest"
+          value={String(streak.longest)}
+          description="Best consecutive-day run"
+        />
+      </SectionGrid>
+    </Section>
   );
 }
 
@@ -213,7 +219,38 @@ function ChartPreview({ report }: { readonly report: RepoReportData }) {
     );
   }
 
-  return <CommitActivityChart data={activity} />;
+  return (
+    <Section ariaLabel="Commit activity">
+      <SectionHeader title="Commit activity" />
+      <CommitActivityChart data={activity} />
+    </Section>
+  );
+}
+
+function RepositoryInfoSection({ report }: { readonly report: RepoReportData }) {
+  const repo = report.repository;
+  const httpsUrl = report.anonymization?.applied !== true && repo.remoteUrl
+    ? normalizeGitRemote(repo.remoteUrl)
+    : undefined;
+
+  return (
+    <Section ariaLabel="Repository information">
+      <SectionHeader title="Repository info" />
+      <SectionGrid cols={3}>
+        <SectionStat label="Name" value={repo.name} />
+        <SectionStat label="Path" value={repo.path} />
+        {repo.currentBranch ? <SectionStat label="Branch" value={repo.currentBranch} /> : null}
+        {httpsUrl !== undefined ? (
+          <SectionStat
+            label="Remote"
+            value={<a href={httpsUrl} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">{httpsUrl}</a>}
+          />
+        ) : null}
+        {repo.firstCommitAt !== undefined ? <SectionStat label="First commit" value={formatDate(repo.firstCommitAt)} /> : null}
+        {repo.lastCommitAt !== undefined ? <SectionStat label="Last commit" value={formatDate(repo.lastCommitAt)} /> : null}
+      </SectionGrid>
+    </Section>
+  );
 }
 
 export function RepoOverview({ report }: { readonly report: ReportData }) {
@@ -230,8 +267,9 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
 
   if (report.commits.length === 0 && report.contributors.length === 0) {
     return (
-      <div className="grid gap-6">
+      <div className="grid gap-5">
         <StatsGrid stats={buildOverviewStats(report)} />
+        <RepositoryInfoSection report={report} />
         {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
         {report.aiUsage !== undefined ? <AiUsagePanel usage={report.aiUsage} /> : null}
         <EmptyState
@@ -243,14 +281,15 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <StatsGrid stats={buildOverviewStats(report)} />
+      <RepositoryInfoSection report={report} />
       {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
       {report.aiUsage !== undefined ? <AiUsagePanel usage={report.aiUsage} /> : null}
-      <section aria-label="Repository overview previews" className="grid grid-flow-dense gap-6 lg:grid-cols-2">
+      <div className="grid grid-flow-dense gap-5 lg:grid-cols-2">
         <StreakCard streak={deriveStreakSummary(report.commits)} />
         <ChartPreview report={report} />
-      </section>
+      </div>
     </div>
   );
 }

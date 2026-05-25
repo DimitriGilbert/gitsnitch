@@ -42,11 +42,11 @@ export type VelocityPoint = { readonly period: string; readonly commits: number;
 export type CodeOwnershipPoint = { readonly owner: string; readonly additions: number; readonly deletions: number; readonly filesChanged: number };
 export type ProjectComparisonPoint = { readonly project: string; readonly commits: number; readonly contributors: number; readonly filesChanged: number };
 export type ActivityHeatmapCell = { readonly day: string; readonly hour: string; readonly commits: number };
-export type AiUsageBreakdownPoint = { readonly name: string; readonly messages: number; readonly tokens: number; readonly cost: number };
+export type AiUsageBreakdownPoint = { readonly name: string; readonly messages: number; readonly inputTokens: number; readonly outputTokens: number; readonly cacheTokens: number; readonly tokens: number; readonly cost: number };
 export type ScanCommitSlice = { readonly name: string; readonly commits: number };
 export type ScanChurnSlice = { readonly name: string; readonly additions: number; readonly deletions: number; readonly churn: number };
-export type ScanAiProjectSlice = { readonly name: string; readonly messages: number; readonly tokens: number };
-export type ScanAiModelSlice = { readonly name: string; readonly messages: number; readonly tokens: number };
+export type ScanAiProjectSlice = { readonly name: string; readonly messages: number; readonly inputTokens: number; readonly outputTokens: number; readonly cacheTokens: number; readonly tokens: number };
+export type ScanAiModelSlice = { readonly name: string; readonly messages: number; readonly inputTokens: number; readonly outputTokens: number; readonly cacheTokens: number; readonly tokens: number };
 
 type ChartPanelProps = {
   readonly title: string;
@@ -221,7 +221,7 @@ export function deriveProjectsComparisonData(projects: readonly ScanProjectRepor
 export function deriveAiUsageBreakdownData(rows: readonly AiUsageBreakdownItem[]): readonly AiUsageBreakdownPoint[] {
   return rows
     .filter((row) => row.records > 0 || row.tokens.total > 0 || row.cost > 0)
-    .map((row) => ({ name: row.key, messages: row.records, tokens: row.tokens.total, cost: row.cost }))
+    .map((row) => ({ name: row.key, messages: row.records, inputTokens: row.tokens.input, outputTokens: row.tokens.output, cacheTokens: row.tokens.cacheRead + row.tokens.cacheWrite, tokens: row.tokens.total, cost: row.cost }))
     .sort((left, right) => right.tokens - left.tokens || right.messages - left.messages || left.name.localeCompare(right.name))
     .slice(0, 8);
 }
@@ -469,14 +469,16 @@ export function ProjectsComparisonChart({ data }: { readonly data: readonly Proj
 
 export function AiUsageBreakdownChart({ title, description, data }: { readonly title: string; readonly description: string; readonly data: readonly AiUsageBreakdownPoint[] }) {
   return (
-    <ChartPanel title={title} description={description} isEmpty={!hasPositiveValue(data, (item) => [item.messages, item.tokens])} emptyTitle={`No ${title.toLowerCase()} to chart`} emptyDescription="AI usage charts need matched local assistant records with model or harness metadata.">
-      <ChartContainer config={{ tokens: { label: "Tokens", color: chartPalette[2] }, messages: { label: "Messages", color: chartPalette[4] } }} className="h-72 w-full">
+    <ChartPanel title={title} description={description} isEmpty={!hasPositiveValue(data, (item) => [item.messages, item.inputTokens, item.outputTokens, item.cacheTokens])} emptyTitle={`No ${title.toLowerCase()} to chart`} emptyDescription="AI usage charts need matched local assistant records with model or harness metadata.">
+      <ChartContainer config={{ inputTokens: { label: "Input", color: chartPalette[0] }, outputTokens: { label: "Output", color: chartPalette[3] }, cacheTokens: { label: "Cache", color: chartPalette[2] }, messages: { label: "Messages", color: chartPalette[4] } }} className="h-72 w-full">
         <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
           <CartesianGrid horizontal={false} />
           <XAxis type="number" hide />
           <YAxis dataKey="name" type="category" width={124} tickLine={false} axisLine={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="tokens" fill="var(--color-tokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="inputTokens" fill="var(--color-inputTokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="outputTokens" fill="var(--color-outputTokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="cacheTokens" fill="var(--color-cacheTokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
           <Bar dataKey="messages" fill="var(--color-messages)" radius={[0, 3, 3, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
@@ -570,18 +572,20 @@ export function ScanAiTokensBarChart({ data }: { readonly data: readonly ScanAiP
   return (
     <ChartPanel
       title="AI tokens per project"
-      description="Token usage across scanned repositories."
-      isEmpty={!hasPositiveValue(data, (item) => [item.tokens])}
+      description="Input, output, and cached token usage across scanned repositories."
+      isEmpty={!hasPositiveValue(data, (item) => [item.inputTokens, item.outputTokens, item.cacheTokens])}
       emptyTitle="No AI tokens to chart"
       emptyDescription="AI token data appears after local assistant records are matched to projects."
     >
-      <ChartContainer config={{ tokens: { label: "Tokens", color: chartPalette[2] } }} className="h-64 w-full">
+      <ChartContainer config={{ inputTokens: { label: "Input", color: chartPalette[0] }, outputTokens: { label: "Output", color: chartPalette[3] }, cacheTokens: { label: "Cache", color: chartPalette[2] } }} className="h-64 w-full">
         <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
           <CartesianGrid horizontal={false} />
           <XAxis type="number" hide />
           <YAxis dataKey="name" type="category" width={112} tickLine={false} axisLine={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="tokens" fill="var(--color-tokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="inputTokens" fill="var(--color-inputTokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="outputTokens" fill="var(--color-outputTokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
+          <Bar dataKey="cacheTokens" fill="var(--color-cacheTokens)" radius={[0, 3, 3, 0]} {...staticChartProps} />
         </BarChart>
       </ChartContainer>
     </ChartPanel>
@@ -643,6 +647,9 @@ export function deriveScanAiPerProjectData(projects: readonly ScanProjectReport[
     .map((project) => ({
       name: project.repository.name,
       messages: project.report.aiUsage!.records,
+      inputTokens: project.report.aiUsage!.tokens.input,
+      outputTokens: project.report.aiUsage!.tokens.output,
+      cacheTokens: project.report.aiUsage!.tokens.cacheRead + project.report.aiUsage!.tokens.cacheWrite,
       tokens: project.report.aiUsage!.tokens.total,
     }))
     .sort((left, right) => right.messages - left.messages || left.name.localeCompare(right.name));
@@ -654,6 +661,9 @@ export function deriveScanAiModelsData(aiUsage: ReportAiUsageProjectSummary): re
     .map((item) => ({
       name: item.key,
       messages: item.records,
+      inputTokens: item.tokens.input,
+      outputTokens: item.tokens.output,
+      cacheTokens: item.tokens.cacheRead + item.tokens.cacheWrite,
       tokens: item.tokens.total,
     }))
     .sort((left, right) => right.messages - left.messages || left.name.localeCompare(right.name));

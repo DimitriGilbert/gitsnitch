@@ -22,7 +22,9 @@ import { EmptyState } from "./empty-state.js";
 import { StatsGrid } from "./layout.js";
 import { RepoOverview } from "./overview.js";
 import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes.js";
+import { normalizeGitRemote } from "./remote-url.js";
 import { CommitsRoute, ContributorsRoute } from "./repo-routes.js";
+import { Section, SectionHeader, SectionStat } from "./section.js";
 import { DataTable } from "./tables.js";
 
 type ScanRouteProps = {
@@ -58,7 +60,10 @@ type ProjectComparisonRow = {
   readonly churn: number;
   readonly lastCommitAt: string | undefined;
   readonly aiMessages: number | undefined;
-  readonly aiTokens: number | undefined;
+  readonly aiTotalTokens: number | undefined;
+  readonly aiInputTokens: number | undefined;
+  readonly aiOutputTokens: number | undefined;
+  readonly aiCacheTokens: number | undefined;
   readonly aiCost: number | undefined;
 };
 
@@ -209,7 +214,7 @@ const projectComparisonBaseColumns: ColumnDef<ProjectComparisonRow>[] = [
         {row.original.remoteUrl ? (
           <a
             className="mt-1 block text-xs text-muted-foreground hover:text-foreground"
-            href={row.original.remoteUrl}
+            href={normalizeGitRemote(row.original.remoteUrl) ?? row.original.remoteUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -226,8 +231,11 @@ const projectComparisonBaseColumns: ColumnDef<ProjectComparisonRow>[] = [
 ];
 
 const projectComparisonAiUsageColumns: ColumnDef<ProjectComparisonRow>[] = [
+  { accessorKey: "aiTotalTokens", header: "AI total", cell: ({ row }) => row.original.aiTotalTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiTotalTokens) },
   { accessorKey: "aiMessages", header: "AI messages", cell: ({ row }) => row.original.aiMessages === undefined ? "—" : formatNumber(row.original.aiMessages) },
-  { accessorKey: "aiTokens", header: "AI tokens", cell: ({ row }) => row.original.aiTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiTokens) },
+  { accessorKey: "aiInputTokens", header: "AI input", cell: ({ row }) => row.original.aiInputTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiInputTokens) },
+  { accessorKey: "aiOutputTokens", header: "AI output", cell: ({ row }) => row.original.aiOutputTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiOutputTokens) },
+  { accessorKey: "aiCacheTokens", header: "AI cache", cell: ({ row }) => row.original.aiCacheTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiCacheTokens) },
   { accessorKey: "aiCost", header: "AI cost", cell: ({ row }) => row.original.aiCost === undefined ? "—" : formatAiUsageCost(row.original.aiCost) },
 ];
 
@@ -250,19 +258,17 @@ const crossProjectContributorColumns: ColumnDef<ContributorAggregate>[] = [
 
 function ScanIntro({ report }: { readonly report: ScanReportData }) {
   return (
-    <section className="grid grid-flow-dense gap-5 rounded-3xl border border-border/70 bg-card/80 p-6 shadow-sm md:grid-cols-[minmax(0,1fr)_18rem] md:items-end">
-      <div className="max-w-4xl">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Scan overview</h2>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Evidence across {report.projects.length} repositories: repository totals, comparable project rows, and contributors whose work spans more than one codebase.
-        </p>
-      </div>
-      <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Scan scope</p>
-        <p className="mt-2 text-sm font-medium text-foreground">Max depth {report.options.scan.maxDepth}</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">Generated {report.generatedAt}</p>
-      </div>
-    </section>
+    <Section className="md:grid-cols-[minmax(0,1fr)_18rem] md:items-end md:grid">
+      <SectionHeader
+        title="Scan overview"
+        description={`Evidence across ${report.projects.length} repositories: repository totals, comparable project rows, and contributors whose work spans more than one codebase.`}
+      />
+      <SectionStat
+        label="Scan scope"
+        value={`Max depth ${report.options.scan.maxDepth}`}
+        description={`Generated ${report.generatedAt}`}
+      />
+    </Section>
   );
 }
 
@@ -289,7 +295,10 @@ function ProjectComparison({ report }: { readonly report: ScanReportData }) {
           churn: totalChurn(entry.project.report),
           lastCommitAt: entry.project.repository.lastCommitAt,
           aiMessages: usage?.records,
-          aiTokens: usage?.tokens.total,
+          aiTotalTokens: usage?.tokens.total,
+          aiInputTokens: usage?.tokens.input,
+          aiOutputTokens: usage?.tokens.output,
+          aiCacheTokens: usage !== undefined ? usage.tokens.cacheRead + usage.tokens.cacheWrite : undefined,
           aiCost: usage?.cost,
         };
       }),
@@ -341,7 +350,7 @@ function ScanCharts({ report }: { readonly report: ScanReportData }) {
   return (
     <section aria-label="Visual comparison">
       <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">Visual comparison</h2>
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         <ScanCommitBarChart data={commitData} />
         <ScanChurnPieChart data={churnData} />
         <LanguageDistributionChart data={languageData} />
@@ -359,7 +368,7 @@ export function ScanOverview({ report }: ScanRouteProps) {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <ScanIntro report={report} />
       <StatsGrid stats={buildScanStats(report)} />
       {report.analysis.aiUsage !== undefined ? (
@@ -383,8 +392,8 @@ function ScanProjectTabs({ report }: { readonly report: RepoReportData }) {
   const [activeTab, setActiveTab] = useState<ScanProjectTab>("Overview");
 
   return (
-    <div className="grid gap-6">
-      <nav aria-label="Project sections" className="flex gap-1 rounded-xl border border-border/70 bg-muted/25 p-1">
+    <div className="grid gap-5">
+      <nav aria-label="Project sections" className="flex gap-1 rounded-2xl border border-border/70 bg-muted/25 p-1">
         {scanProjectTabs.map((tab) => (
           <button
             key={tab}
@@ -430,28 +439,27 @@ export function ScanProjectRoute({ report, projectSlug }: ScanProjectRouteProps)
   const repoReport = entry.project.report;
 
   return (
-    <div className="grid gap-6">
-      <section className="grid grid-flow-dense gap-4 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm sm:grid-cols-[1fr_auto] sm:items-start">
-        <div className="max-w-4xl">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{entry.project.repository.name}</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Drill-down for {entry.project.repository.name}. Overview, commits, contributors, charts, hotspots, and quality signals from the scanned project report.
-          </p>
-          {entry.project.repository.remoteUrl ? (
-            <a
-              className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              href={entry.project.repository.remoteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View remote
-            </a>
-          ) : null}
-        </div>
-        <a className="text-sm font-medium text-foreground underline-offset-4 hover:underline" href="#/scan">
-          Back to scan overview
-        </a>
-      </section>
+    <div className="grid gap-5">
+      <Section>
+        <SectionHeader
+          title={entry.project.repository.name}
+          description={`Drill-down for ${entry.project.repository.name}. Overview, commits, contributors, charts, hotspots, and quality signals from the scanned project report.`}
+        >
+          <a className="text-sm font-medium text-foreground underline-offset-4 hover:underline" href="#/scan">
+            Back to scan overview
+          </a>
+        </SectionHeader>
+        {entry.project.repository.remoteUrl ? (
+          <a
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            href={normalizeGitRemote(entry.project.repository.remoteUrl) ?? entry.project.repository.remoteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View remote
+          </a>
+        ) : null}
+      </Section>
       <ScanProjectTabs report={repoReport} />
     </div>
   );

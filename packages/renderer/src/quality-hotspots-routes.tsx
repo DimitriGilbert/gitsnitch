@@ -1,9 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
 import { cn } from "@git-snitch/ui/lib/utils";
 
 import type { FileHotspot, QualitySignal, RepoReportData, ReportData } from "@git-snitch/core";
 
 import { EmptyState } from "./empty-state.js";
+import { Section, SectionGrid, SectionHeader, SectionStat } from "./section.js";
 import { HotspotsTable } from "./tables.js";
 
 type RepoRouteProps = {
@@ -181,37 +181,29 @@ function HealthScorePanel({ report }: { readonly report: RepoReportData }) {
     : "There are not enough commits or contributors for a confident health label. Treat this repository as inconclusive until it has a larger evidence trail.";
 
   return (
-    <section className="grid grid-flow-dense gap-5 rounded-3xl border border-border/70 bg-card/80 p-6 shadow-sm md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:items-center">
-      <div className="rounded-2xl border border-border/70 bg-background/70 p-6">
-        <p className="text-sm font-medium text-muted-foreground">Repository health score</p>
-        <div className="mt-3 flex items-end gap-2">
-          <span className="text-6xl font-semibold tracking-[-0.08em] text-foreground">{hasEvidence ? health.score : "—"}</span>
-          {hasEvidence ? <span className="pb-2 text-lg font-medium text-muted-foreground">/100</span> : null}
-        </div>
-        <p className="mt-3 text-base font-semibold text-foreground">{health.rating}</p>
-      </div>
-      <div className="max-w-4xl">
-        <h2 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">Quality signals without hiding the evidence trail.</h2>
-        <p className="mt-4 text-sm leading-6 text-muted-foreground">{narrative}</p>
-      </div>
-    </section>
+    <Section className="grid grid-flow-dense md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:items-center">
+      <SectionStat
+        label="Repository health score"
+        value={hasEvidence ? `${health.score}/100` : "—"}
+        description={health.rating}
+      />
+      <SectionHeader title="Quality signals without hiding the evidence trail." description={narrative} />
+    </Section>
   );
 }
 
 function QualityMetricCards({ report }: { readonly report: RepoReportData }) {
   return (
-    <section aria-label="Quality metric cards" className="grid grid-flow-dense gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {qualityMetrics(report).map((metric) => (
-        <Card key={metric.label} className={cn("overflow-hidden shadow-none transition-transform duration-500 ease-out hover:-translate-y-0.5", metricToneClass(metric.tone))}>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">{metric.label}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tracking-tight text-foreground">{metric.value}</p>
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">{metric.description}</p>
-          </CardContent>
-        </Card>
-      ))}
+    <section aria-label="Quality metric cards">
+      <SectionGrid cols={4} className="grid-flow-dense">
+        {qualityMetrics(report).map((metric) => (
+          <div key={metric.label} className={cn("rounded-xl border p-4", metricToneClass(metric.tone))}>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{metric.label}</p>
+            <p className="mt-1 text-lg font-semibold tracking-tight text-foreground">{metric.value}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{metric.description}</p>
+          </div>
+        ))}
+      </SectionGrid>
     </section>
   );
 }
@@ -237,14 +229,11 @@ function RecommendationsList({ signals }: { readonly signals: readonly QualitySi
   }
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card/80 shadow-sm" aria-label="Quality recommendations">
-      <div className="border-b border-border/70 p-5">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Recommendations</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">Prioritized actions generated from the report quality signals.</p>
-      </div>
+    <Section ariaLabel="Quality recommendations">
+      <SectionHeader title="Recommendations" description="Prioritized actions generated from the report quality signals." />
       <ol className="divide-y divide-border/70">
         {signals.map((signal) => (
-          <li key={signal.id} className="grid gap-3 p-5 md:grid-cols-[auto_1fr] md:items-start">
+          <li key={signal.id} className="grid gap-3 py-4 first:pt-0 last:pb-0 md:grid-cols-[auto_1fr] md:items-start">
             <span className={cn("inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold capitalize", severityClass(signal.severity))}>{signal.severity}</span>
             <div>
               <h3 className="font-semibold text-foreground">{signal.label}</h3>
@@ -253,7 +242,7 @@ function RecommendationsList({ signals }: { readonly signals: readonly QualitySi
           </li>
         ))}
       </ol>
-    </section>
+    </Section>
   );
 }
 
@@ -274,22 +263,22 @@ function RiskIndicators({ hotspots }: { readonly hotspots: readonly FileHotspot[
   const topRisk = highestRisk(hotspots);
 
   return (
-    <section aria-label="Hotspot risk indicators" className="grid grid-flow-dense gap-4 md:grid-cols-3">
-      <Card className="border-red-500/20 bg-red-500/10 shadow-none transition-transform duration-500 ease-out hover:-translate-y-0.5">
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">High risk files</CardTitle></CardHeader>
-        <CardContent><p className="text-4xl font-semibold tracking-tight text-foreground">{formatNumber(countRisk(hotspots, "high"))}</p></CardContent>
-      </Card>
-      <Card className="border-amber-500/20 bg-amber-500/10 shadow-none transition-transform duration-500 ease-out hover:-translate-y-0.5">
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Medium risk files</CardTitle></CardHeader>
-        <CardContent><p className="text-4xl font-semibold tracking-tight text-foreground">{formatNumber(countRisk(hotspots, "medium"))}</p></CardContent>
-      </Card>
-      <Card className="shadow-none transition-transform duration-500 ease-out hover:-translate-y-0.5">
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Top hotspot</CardTitle></CardHeader>
-        <CardContent>
-          <p className="truncate font-mono text-sm font-semibold text-foreground">{topRisk?.path ?? "No file risk"}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{topRisk ? `${formatNumber(topRisk.hotspotScore)} score from churn and contributors` : "No ranked file changes yet."}</p>
-        </CardContent>
-      </Card>
+    <section aria-label="Hotspot risk indicators">
+      <SectionGrid cols={3} className="grid-flow-dense">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">High risk files</p>
+          <p className="mt-1 text-lg font-semibold tracking-tight text-foreground">{formatNumber(countRisk(hotspots, "high"))}</p>
+        </div>
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Medium risk files</p>
+          <p className="mt-1 text-lg font-semibold tracking-tight text-foreground">{formatNumber(countRisk(hotspots, "medium"))}</p>
+        </div>
+        <SectionStat
+          label="Top hotspot"
+          value={topRisk?.path ?? "No file risk"}
+          description={topRisk ? `${formatNumber(topRisk.hotspotScore)} score from churn and contributors` : "No ranked file changes yet."}
+        />
+      </SectionGrid>
     </section>
   );
 }
@@ -302,7 +291,7 @@ export function QualityRoute({ report }: RepoRouteProps) {
   const isTiny = !hasConclusiveQualityEvidence(report);
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <HealthScorePanel report={report} />
       {isTiny ? (
         <EmptyState
@@ -324,15 +313,13 @@ export function HotspotsRoute({ report }: RepoRouteProps) {
   const hotspots = report.analysis.hotspots;
 
   return (
-    <div className="grid gap-6">
-      <section className="rounded-3xl border border-border/70 bg-card/80 p-6 shadow-sm">
-        <div className="max-w-4xl">
-          <h2 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">Hotspots rank files where churn, frequency, and shared ownership intersect.</h2>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Use this route to find files that deserve review before they become expensive coordination points. Low activity repositories show an explicit empty state instead of a fabricated risk map.
-          </p>
-        </div>
-      </section>
+    <div className="grid gap-5">
+      <Section>
+        <SectionHeader
+          title="Hotspots rank files where churn, frequency, and shared ownership intersect."
+          description="Use this route to find files that deserve review before they become expensive coordination points. Low activity repositories show an explicit empty state instead of a fabricated risk map."
+        />
+      </Section>
       {hotspots.length > 0 ? <RiskIndicators hotspots={hotspots} /> : null}
       <HotspotsTable hotspots={hotspots} exportFilename={repoFilename(report, "hotspots.csv")} remoteUrl={report.repository.remoteUrl} currentBranch={report.repository.currentBranch} />
     </div>

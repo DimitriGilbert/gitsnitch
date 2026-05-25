@@ -1,5 +1,4 @@
 import { Button } from "@git-snitch/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -13,6 +12,7 @@ import {
 } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
 import { downloadJson } from "./export.js";
+import { Section, SectionGrid, SectionHeader, SectionStat } from "./section.js";
 import { CommitsTable, ContributorsTable } from "./tables.js";
 import type { DownloadResult } from "./export.js";
 
@@ -135,13 +135,9 @@ function JsonExportButton({ filename, rows, downloader }: { readonly filename: s
 
 function RouteHeader({ title, description, action }: { readonly title: string; readonly description: string; readonly action?: ReactNode }) {
   return (
-    <section className="grid grid-flow-dense gap-4 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm sm:grid-cols-[1fr_auto] sm:items-start">
-      <div className="max-w-3xl">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{title}</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-      </div>
-      {action}
-    </section>
+    <Section>
+      <SectionHeader title={title} description={description}>{action}</SectionHeader>
+    </Section>
   );
 }
 
@@ -151,25 +147,13 @@ function CommitsSummary({ commits }: { readonly commits: readonly CommitRecord[]
   const deletions = commits.reduce((sum, commit) => sum + commitDeletions(commit), 0);
 
   return (
-    <section aria-label="Commit ledger summary" className="grid grid-flow-dense gap-3 sm:grid-cols-3">
-      <SummaryCard title="Touched files" value={formatNumber(touchedFiles)} description="Unique paths changed by visible commits." />
-      <SummaryCard title="Additions" value={formatNumber(additions)} description="Lines added across commit file stats." />
-      <SummaryCard title="Deletions" value={formatNumber(deletions)} description="Lines removed across commit file stats." />
-    </section>
-  );
-}
-
-function SummaryCard({ title, value, description }: { readonly title: string; readonly value: string; readonly description: string }) {
-  return (
-    <Card className="overflow-hidden shadow-none transition-transform duration-500 ease-out hover:-translate-y-0.5">
-      <CardHeader>
-        <CardTitle className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-3xl font-semibold tracking-tight text-foreground">{value}</p>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+    <Section ariaLabel="Commit ledger summary">
+      <SectionGrid cols={3}>
+        <SectionStat label="Touched files" value={formatNumber(touchedFiles)} description="Unique paths changed by visible commits." />
+        <SectionStat label="Additions" value={formatNumber(additions)} description="Lines added across commit file stats." />
+        <SectionStat label="Deletions" value={formatNumber(deletions)} description="Lines removed across commit file stats." />
+      </SectionGrid>
+    </Section>
   );
 }
 
@@ -182,10 +166,12 @@ function ContributorsComparison({ contributors }: { readonly contributors: reado
   }
 
   return (
-    <section aria-label="Contributor comparison visuals" className="grid grid-flow-dense gap-6 lg:grid-cols-2">
-      <ContributorPieChart data={contributorShare} />
-      <CodeOwnershipChart data={ownership} />
-    </section>
+    <Section ariaLabel="Contributor comparison visuals">
+      <SectionGrid cols={2}>
+        <ContributorPieChart data={contributorShare} />
+        <CodeOwnershipChart data={ownership} />
+      </SectionGrid>
+    </Section>
   );
 }
 
@@ -231,11 +217,13 @@ function ContributorTimeline({ contributors }: { readonly contributors: readonly
   }
 
   return (
-    <section aria-label="Contributor activity timeline" className="grid grid-flow-dense gap-3 sm:grid-cols-3">
-      <SummaryCard title="Activity span" value={`${formatNumber(summary.activeDays)} days`} description={`${summary.firstDate} through ${summary.lastDate}.`} />
-      <SummaryCard title="Latest contributor" value={summary.latestContributor} description="Contributor with the most recent recorded commit." />
-      <SummaryCard title="Tracked people" value={formatNumber(contributors.length)} description="Contributor identities in this repository report." />
-    </section>
+    <Section ariaLabel="Contributor activity timeline">
+      <SectionGrid cols={3}>
+        <SectionStat label="Activity span" value={`${formatNumber(summary.activeDays)} days`} description={`${summary.firstDate} through ${summary.lastDate}.`} />
+        <SectionStat label="Latest contributor" value={summary.latestContributor} description="Contributor with the most recent recorded commit." />
+        <SectionStat label="Tracked people" value={formatNumber(contributors.length)} description="Contributor identities in this repository report." />
+      </SectionGrid>
+    </Section>
   );
 }
 
@@ -249,7 +237,7 @@ export function CommitsRoute({ report, jsonDownloader }: RepoRouteProps) {
   const hasCommits = report.commits.length > 0;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <RouteHeader
         title="Commits ledger"
         description="Searchable, sortable commit evidence with line churn and file context preserved for standalone reports."
@@ -271,7 +259,7 @@ export function ContributorsRoute({ report, jsonDownloader }: RepoRouteProps) {
   const hasContributors = report.contributors.length > 0;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <RouteHeader
         title="Contributors"
         description="A contributor-first view of ownership, recent activity, and exportable identity-level report data."

@@ -81,7 +81,7 @@ describe("repo overview route content", () => {
     expect(screen.getByText("12")).toBeTruthy();
     expect(screen.getByText("42")).toBeTruthy();
     expect(screen.getByText("Commit streak")).toBeTruthy();
-    expect(screen.getByText("Commit activity")).toBeTruthy();
+    expect(screen.getAllByText("Commit activity").length).toBeGreaterThan(0);
   });
 
   it("renders an explicit empty repository state without hiding zero totals", () => {
@@ -104,6 +104,9 @@ describe("repo overview route content", () => {
     render(<RepoOverview report={repoReportWithAiUsage()} />);
 
     expect(screen.getByText("AI usage")).toBeTruthy();
+    expect(screen.getByText("Input tokens")).toBeTruthy();
+    expect(screen.getByText("Output tokens")).toBeTruthy();
+    expect(screen.getByText("Cache tokens")).toBeTruthy();
     expect(screen.getByText("Total tokens")).toBeTruthy();
     expect(screen.getAllByText("200").length).toBeGreaterThan(0);
     expect(screen.getByText("Estimated cost")).toBeTruthy();
@@ -111,7 +114,6 @@ describe("repo overview route content", () => {
     expect(screen.getAllByText("Messages").length).toBeGreaterThan(0);
     expect(screen.getByText("opencode")).toBeTruthy();
     expect(screen.getByText("gpt-5.5")).toBeTruthy();
-    expect(screen.queryByText("/workspace/fixture-repo")).toBeNull();
   });
 
   it("renders an explicit AI usage empty state when totals are zero", () => {

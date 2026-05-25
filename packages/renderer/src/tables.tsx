@@ -116,7 +116,7 @@ export function DataTable<TData>({
   }
 
   return (
-    <section className="rounded-xl border border-border/70 bg-card/80 shadow-sm" aria-label={ariaLabel}>
+    <section className="rounded-2xl border border-border/70 bg-card/80 shadow-sm" aria-label={ariaLabel}>
       <div className="flex flex-col gap-3 border-b border-border/70 p-3 sm:flex-row sm:items-center sm:justify-between">
         {search ? (
           <label className="min-w-0 flex-1 sm:max-w-sm">

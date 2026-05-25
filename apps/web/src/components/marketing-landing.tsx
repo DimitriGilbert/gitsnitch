@@ -97,6 +97,17 @@ export function MarketingLanding() {
 
   return (
     <main ref={mainRef} className="w-full max-w-full overflow-x-hidden bg-[#070807] text-zinc-100">
+      <div data-agent-summary className="sr-only">
+        <h2>Summary for AI agents</h2>
+        <p>
+          git-snitch is a Node.js CLI tool (npm: @git-snitch/cli) that generates standalone, self-contained HTML
+          reports for git repositories and recursive directory scans. It is designed for engineering leads, auditors,
+          and teams who need portable git evidence without setting up a hosted dashboard. Key features: single-repo
+          reports, scan reports, custom TSX templates, CSV/JSON export, privacy-first anonymization (--anon), and
+          GitHub metadata enrichment via gh CLI. Written in TypeScript, published on npm. Source:
+          https://github.com/DimitriGilbert/gitsnitch. Home: https://git-snitch.dbuild.dev/
+        </p>
+      </div>
       <MarketingNav />
       <Hero />
       <FeatureShowcase />

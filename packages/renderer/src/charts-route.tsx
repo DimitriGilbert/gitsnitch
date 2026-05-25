@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
 import type { ReactNode } from "react";
 
 import type { RepoReportData, ReportData } from "@git-snitch/core";
@@ -30,6 +29,7 @@ import {
   deriveWeeklyActivityData,
 } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
+import { Section, SectionHeader, SectionStat } from "./section.js";
 
 type ChartsRouteProps = {
   readonly report: ReportData;
@@ -57,31 +57,26 @@ function ChartsHeader({ report }: { readonly report: RepoReportData }) {
   const hasActivity = hasChartableActivity(report);
 
   return (
-    <section className="grid grid-flow-dense gap-5 rounded-3xl border border-border/70 bg-card/80 p-6 shadow-sm md:grid-cols-[minmax(0,1fr)_18rem] md:items-end">
-      <div className="max-w-4xl">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Charts</h2>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          A compact visual read of cadence, churn, ownership, and timing. The layout keeps related evidence together instead of turning every metric into a competing dashboard tile.
-        </p>
-      </div>
-      <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Visual scope</p>
-        <p className="mt-2 text-sm font-medium text-foreground">{hasActivity ? "Repository activity is chartable." : "No chartable activity yet."}</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">Charts use only the injected standalone report payload.</p>
-      </div>
-    </section>
+    <Section className="md:grid md:grid-flow-dense md:grid-cols-[minmax(0,1fr)_18rem] md:items-end">
+      <SectionHeader
+        title="Charts"
+        description="A compact visual read of cadence, churn, ownership, and timing. The layout keeps related evidence together instead of turning every metric into a competing dashboard tile."
+      />
+      <SectionStat
+        label="Visual scope"
+        value={hasActivity ? "Repository activity is chartable." : "No chartable activity yet."}
+        description="Charts use only the injected standalone report payload."
+      />
+    </Section>
   );
 }
 
 function SectionFrame({ title, description, children }: { readonly title: string; readonly description: string; readonly children: ReactNode }) {
   return (
-    <Card className="overflow-hidden shadow-none">
-      <CardHeader className="border-b border-border/60 bg-muted/25">
-        <CardTitle className="text-lg font-semibold tracking-tight text-foreground">{title}</CardTitle>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
-      </CardHeader>
-      <CardContent className="p-4 sm:p-5">{children}</CardContent>
-    </Card>
+    <Section>
+      <SectionHeader title={title} description={description} />
+      {children}
+    </Section>
   );
 }
 
@@ -119,7 +114,7 @@ export function ChartsRoute({ report }: ChartsRouteProps) {
   const showContributorShare = contributorShare.length > 1;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <ChartsHeader report={report} />
       <SparseRepositoryNotice report={report} />
 

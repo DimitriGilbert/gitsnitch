@@ -133,7 +133,7 @@ describe("quality route", () => {
     render(<QualityRoute report={repoWithQuality()} />);
 
     expect(screen.getByText("Repository health score")).toBeTruthy();
-    expect(screen.getByText("54")).toBeTruthy();
+    expect(screen.getByText("54/100")).toBeTruthy();
     expect(screen.getByText("Strained")).toBeTruthy();
     expect(screen.getByText("Bus factor")).toBeTruthy();
     expect(screen.getByText("Avg commit size")).toBeTruthy();

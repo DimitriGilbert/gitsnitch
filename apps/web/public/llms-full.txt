@@ -1,0 +1,79 @@
+# git-snitch - Full Description
+
+> git-snitch is a Node-based npm CLI that writes self-contained HTML reports for a single git repository or a recursive directory scan. No backend, no database, no browser launch unless you ask for --open.
+
+## Installation
+
+```bash
+pnpm add -D @git-snitch/cli
+# or
+npm install --save-dev @git-snitch/cli
+```
+
+## Commands
+
+### Single-repo report
+
+```bash
+npx @git-snitch/cli repo --output ./reports/repo.html
+npx @git-snitch/cli repo --open
+```
+
+### Scan multiple repositories
+
+```bash
+npx @git-snitch/cli scan ../workspace --output ./reports/scan.html
+npx @git-snitch/cli scan ../workspace --max-depth 3
+```
+
+### Customization and protection
+
+```bash
+npx @git-snitch/cli repo --template ./report-template.tsx
+npx @git-snitch/cli repo --no-overwrite
+```
+
+### Privacy-first sharing
+
+```bash
+npx @git-snitch/cli repo --anon --output report.html
+```
+
+## Features
+
+### Repo reports
+Turn a single repository into a navigable HTML report with overview, commits, contributors, charts, quality, and hotspots routes.
+
+### Scan reports
+Run recursive scans from a directory, compare projects, and drill into each discovered repository without a hosted service.
+
+### Custom templates
+Pass `--template <path>` to provide route-level TSX overrides while missing routes fall back to the built-in renderer.
+
+### Exports
+Use report export controls for CSV/JSON data where the standalone renderer has exportable tables and datasets.
+
+### Standalone HTML
+Each CLI run writes a self-contained report file designed for local sharing, archiving, and file-protocol viewing.
+
+### Privacy-first sharing
+Share reports without exposing repo names, author emails, or file paths. Pass --anon to sanitize everything in one flag.
+
+### GitHub enriched
+Stars, forks, license, and topics automatically appear in your reports via the gh CLI. No token setup beyond what you already have.
+
+## Architecture
+
+- **Language:** TypeScript
+- **Runtime:** Node.js
+- **Output format:** Self-contained HTML (inline CSS, JS, data)
+- **No external dependencies at runtime** beyond git and optionally the gh CLI
+- **Published on npm** as @git-snitch/cli
+
+## Links
+
+- Home: https://git-snitch.dbuild.dev/
+- GitHub: https://github.com/DimitriGilbert/gitsnitch
+- npm: https://www.npmjs.com/package/@git-snitch/cli
+- Repo demo: https://git-snitch.dbuild.dev/example.html
+- Scan demo: https://git-snitch.dbuild.dev/weekload.html

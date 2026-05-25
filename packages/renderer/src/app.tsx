@@ -21,6 +21,7 @@ import { ChartsRoute } from "./charts-route.js";
 import { RepoOverview } from "./overview.js";
 import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes.js";
 import { CommitsRoute, ContributorsRoute } from "./repo-routes.js";
+import { normalizeGitRemote } from "./remote-url.js";
 import { ScanOverview, ScanProjectRoute, deriveScanProjectRouteEntries } from "./scan-routes.js";
 import { ThemeProvider } from "./theme.js";
 
@@ -113,25 +114,26 @@ declare module "@tanstack/react-router" {
   }
 }
 
-function normalizeGitRemote(remoteUrl: string): string | undefined {
-  // SSH format: git@github.com:org/repo.git
-  const scpMatch = /^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/.exec(remoteUrl);
-  if (scpMatch?.[1] !== undefined && scpMatch[2] !== undefined) {
-    return `https://github.com/${scpMatch[1]}/${scpMatch[2]}`;
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function buildRepoDescription(report: RepoReportData): string {
+  const repo = report.repository;
+  const commits = report.commits.length;
+  const contributors = report.contributors.length;
+  const first = repo.firstCommitAt;
+  const last = repo.lastCommitAt;
+
+  if (first !== undefined && last !== undefined) {
+    return `Report covering ${commits} commits across ${contributors} contributors, spanning ${formatDate(first)} to ${formatDate(last)}.`;
   }
 
-  // SSH format: ssh://git@github.com/org/repo.git
-  const sshMatch = /^ssh:\/\/git@github\.com\/([^/]+)\/(.+?)(?:\.git)?$/.exec(remoteUrl);
-  if (sshMatch?.[1] !== undefined && sshMatch[2] !== undefined) {
-    return `https://github.com/${sshMatch[1]}/${sshMatch[2]}`;
-  }
+  return `Report covering ${commits} commits across ${contributors} contributors.`;
+}
 
-  // HTTPS: only return if it starts with http:// or https://
-  if (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://")) {
-    return remoteUrl.replace(/\.git$/, "");
-  }
-
-  return undefined;
+function buildScanDescription(report: ScanReportData): string {
+  return `Scan of ${report.directory} covering ${report.analysis.totalRepositories} repositories with ${report.analysis.totalCommits} total commits.`;
 }
 
 function ReportShell() {
@@ -212,12 +214,20 @@ function ReportRootLayout() {
     ? <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Anonymized</span>
     : undefined;
 
+  const eyebrow = report.kind === "repo" && report.repository.currentBranch
+    ? `Branch: ${report.repository.currentBranch}`
+    : undefined;
+
+  const description = report.kind === "repo"
+    ? buildRepoDescription(report)
+    : buildScanDescription(report);
+
   return (
     <AppShell
       title={title}
       titleHref={titleHref}
-      eyebrow="Standalone git activity report"
-      description={`Renderer pipeline loaded a ${report.kind} report generated at ${report.generatedAt}.`}
+      eyebrow={eyebrow}
+      description={description}
       navigationItems={navigationItems}
       headerActions={headerActions}
     >

@@ -241,8 +241,11 @@ describe("scan report routes", () => {
     expect(screen.getByText("Scan AI usage")).toBeTruthy();
     expect(screen.getByText("600")).toBeTruthy();
     expect(screen.getByText("$0.30")).toBeTruthy();
+    expect(screen.getByText("AI total")).toBeTruthy();
     expect(screen.getByText("AI messages")).toBeTruthy();
-    expect(screen.getByText("AI tokens")).toBeTruthy();
+    expect(screen.getByText("AI input")).toBeTruthy();
+    expect(screen.getByText("AI output")).toBeTruthy();
+    expect(screen.getByText("AI cache")).toBeTruthy();
     expect(screen.getByText("AI cost")).toBeTruthy();
     expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
     expect(screen.getByRole("table", { name: "Model breakdown" })).toBeTruthy();
@@ -276,7 +279,7 @@ describe("scan report routes", () => {
     expect(screen.getByRole("heading", { name: "api" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Back to scan overview" }).getAttribute("href")).toBe("#/scan");
     expect(screen.getByText("Commit streak")).toBeTruthy();
-    expect(screen.getByText("Commit activity")).toBeTruthy();
+    expect(screen.getAllByText("Commit activity").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Charts" }));
     expect(screen.getByRole("heading", { name: "Charts" })).toBeTruthy();
