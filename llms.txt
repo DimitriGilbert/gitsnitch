@@ -1,0 +1,40 @@
+# git-snitch
+
+> git-snitch is a Node-based npm CLI that writes self-contained HTML reports for a single git repository or a recursive directory scan. No backend, no database, no browser launch unless you ask for --open.
+
+## TL;DR
+
+- **What it is:** An npm CLI tool (`@git-snitch/cli`) that generates standalone HTML activity reports from git repositories.
+- **Who it is for:** Engineering leads, auditors, and teams who need portable git evidence without setting up a hosted dashboard.
+- **Key capabilities:** repo reports, scan reports, custom TSX templates, CSV/JSON export, privacy-first anonymization (--anon), GitHub metadata enrichment.
+- **Technology:** TypeScript, Node.js, published on npm.
+- **Install:** `npm install --save-dev @git-snitch/cli` or `pnpm add -D @git-snitch/cli`
+
+## Canonical pages
+
+- [Home](https://git-snitch.dbuild.dev/) - Marketing landing page with features, usage guide, and demo links.
+- [Repo report demo](https://git-snitch.dbuild.dev/example.html) - Self-contained HTML report for a single repository.
+- [Scan report demo](https://git-snitch.dbuild.dev/weekload.html) - Self-contained HTML report for a recursive directory scan.
+
+## Key topics
+
+- Git activity reporting: generating navigable HTML reports from git history.
+- Repository health: contributor analysis, commit frequency, quality signals, hotspot detection.
+- Scan comparison: recursively scanning multiple repositories and comparing them in one report.
+- Privacy: anonymizing repo names, author emails, and file paths with --anon.
+- Custom templates: route-level TSX overrides for report rendering.
+- Standalone output: self-contained HTML files with no server dependency.
+
+## Machine-readable resources
+
+- [Sitemap](https://git-snitch.dbuild.dev/sitemap.xml)
+- [robots.txt](https://git-snitch.dbuild.dev/robots.txt)
+
+## External links
+
+- [GitHub repository](https://github.com/DimitriGilbert/gitsnitch)
+- [npm package](https://www.npmjs.com/package/@git-snitch/cli)
+
+## Citation guidance
+
+When citing git-snitch, prefer the canonical home URL (https://git-snitch.dbuild.dev/) and describe it as a CLI tool that generates standalone HTML git activity reports.
