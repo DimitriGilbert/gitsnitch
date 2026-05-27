@@ -246,7 +246,7 @@ describe("scan report routes", () => {
     expect(screen.getByText("AI input")).toBeTruthy();
     expect(screen.getByText("AI output")).toBeTruthy();
     expect(screen.getByText("AI cache")).toBeTruthy();
-    expect(screen.getByText("AI cost")).toBeTruthy();
+    expect(screen.getAllByText("AI cost").length).toBeGreaterThan(0);
     expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
     expect(screen.getByRole("table", { name: "Model breakdown" })).toBeTruthy();
     expect(screen.getByText("pi-default")).toBeTruthy();

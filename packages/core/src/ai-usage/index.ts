@@ -10,6 +10,10 @@
  * design; unattributed records never match repository summaries.
  */
 export type {
+  AiModelPricing,
+  AiModelPricingCandidate,
+} from "./pricing.js";
+export type {
   AiClientId,
   AiSourceAttributionStatus,
   AiTokenBreakdown,
@@ -54,3 +58,7 @@ export {
   parseOpenCodeUsageSqlite,
   parsePiUsageJsonl,
 } from "./parsers.js";
+export {
+  estimateAiUsageRecordCost,
+  withEstimatedAiUsageCosts,
+} from "./pricing.js";

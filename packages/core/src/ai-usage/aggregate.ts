@@ -28,10 +28,12 @@ function addTokens(left: AiTokenBreakdown, right: AiTokenBreakdown): AiTokenBrea
 }
 
 function addRecord(summary: AiUsageSummary, record: AiUsageRecord): AiUsageSummary {
+  const unsubsidizedCost = (summary.unsubsidizedCost ?? 0) + (record.unsubsidizedCost ?? 0);
   return {
     records: summary.records + 1,
     tokens: addTokens(summary.tokens, record.tokens),
     cost: summary.cost + (record.cost ?? 0),
+    ...(unsubsidizedCost > 0 ? { unsubsidizedCost } : {}),
   };
 }
 
@@ -106,7 +108,15 @@ export function summarizeAiUsageForRepos(records: readonly AiUsageRecord[], repo
   const matchedRecords = repoPaths.flatMap((repoPath) => filterAiUsageForRepo(filteredRecords, repoPath));
   const matchedTotal: ReportAiUsageProjectSummary = {
     ...projects.reduce<AiUsageSummary>(
-      (total, project) => ({ records: total.records + project.records, tokens: addTokens(total.tokens, project.tokens), cost: total.cost + project.cost }),
+      (total, project) => {
+        const unsubsidizedCost = (total.unsubsidizedCost ?? 0) + (project.unsubsidizedCost ?? 0);
+        return {
+          records: total.records + project.records,
+          tokens: addTokens(total.tokens, project.tokens),
+          cost: total.cost + project.cost,
+          ...(unsubsidizedCost > 0 ? { unsubsidizedCost } : {}),
+        };
+      },
       emptyAiUsageSummary(),
     ),
     breakdowns: summarizeAiUsageBreakdowns(matchedRecords),

@@ -17,6 +17,7 @@ import {
   parseOpenCodeUsageSqlite,
   parsePiUsageJsonl,
 } from "./parsers.js";
+import { withEstimatedAiUsageCosts } from "./pricing.js";
 
 export class AiUsageCollectionError extends Error {
   public constructor(message: string) {
@@ -41,7 +42,7 @@ export async function collectAiUsageRecords(options: AiUsageCollectionOptions = 
     }
   }
 
-  return dedupeAiUsageRecords(records);
+  return withEstimatedAiUsageCosts(dedupeAiUsageRecords(records));
 }
 
 function clientsForOptions(storeRoots: AiUsageStoreRoots | undefined): readonly AiClientId[] {

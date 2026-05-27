@@ -76,6 +76,7 @@ const aiUsageSummaryShape = {
   records: z.number().int().nonnegative(),
   tokens: aiTokenBreakdownSchema,
   cost: z.number().nonnegative(),
+  unsubsidizedCost: z.number().nonnegative().optional(),
 };
 
 const aiUsageBreakdownItemSchema: z.ZodType<AiUsageBreakdownItem> = z.object({

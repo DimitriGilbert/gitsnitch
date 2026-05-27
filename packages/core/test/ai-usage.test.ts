@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
+import type { AiUsageRecord } from "../src/index.js";
+
 import {
+  estimateAiUsageRecordCost,
   parseAmpUsageFile,
   parseClaudeUsageJsonl,
   parseCodexUsageJsonl,
@@ -190,6 +193,35 @@ describe("AI usage parsers", () => {
 });
 
 describe("AI usage aggregation", () => {
+  it("estimates cost from model pricing instead of subsidized recorded cost", () => {
+    const record: AiUsageRecord = {
+      client: "opencode",
+      sessionId: "session",
+      model: "glm-5.1",
+      provider: "zai-coding-plan",
+      timestamp: "2025-01-01T00:00:00.000Z",
+      sourceAttribution: "unattributed",
+      tokens: { input: 1_000_000, cacheRead: 500_000, cacheWrite: 100_000, output: 250_000, reasoning: 50_000, total: 1_900_000 },
+      cost: 0,
+    };
+
+    expect(estimateAiUsageRecordCost(record)).toBeCloseTo(2.99, 6);
+  });
+
+  it("estimates GPT costs with cached input pricing", () => {
+    const record: AiUsageRecord = {
+      client: "codex",
+      sessionId: "session",
+      model: "gpt-5.5",
+      provider: "openai",
+      timestamp: "2025-01-01T00:00:00.000Z",
+      sourceAttribution: "unattributed",
+      tokens: { input: 1_000_000, cacheRead: 1_000_000, cacheWrite: 0, output: 100_000, reasoning: 100_000, total: 2_200_000 },
+    };
+
+    expect(estimateAiUsageRecordCost(record)).toBeCloseTo(11.5, 6);
+  });
+
   it("matches strict normalized repo paths and excludes unattributed records", () => {
     const repo = tempPath("repo");
     const nested = join(repo, "packages", "core");

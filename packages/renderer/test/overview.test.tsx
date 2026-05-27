@@ -33,10 +33,11 @@ function repoReportWithAiUsage(): RepoReportData {
       records: 3,
       tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 },
       cost: 0.1234,
+      unsubsidizedCost: 0.5678,
       breakdowns: {
-        byClient: [{ key: "opencode", records: 2, tokens: { input: 80, output: 40, cacheRead: 20, cacheWrite: 10, reasoning: 10, total: 160 }, cost: 0.1 }],
-        byModel: [{ key: "gpt-5.5", records: 3, tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 }, cost: 0.1234 }],
-        byDay: [{ key: "2024-01-02", records: 3, tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 }, cost: 0.1234 }],
+        byClient: [{ key: "opencode", records: 2, tokens: { input: 80, output: 40, cacheRead: 20, cacheWrite: 10, reasoning: 10, total: 160 }, cost: 0.1, unsubsidizedCost: 0.5 }],
+        byModel: [{ key: "gpt-5.5", records: 3, tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 }, cost: 0.1234, unsubsidizedCost: 0.5678 }],
+        byDay: [{ key: "2024-01-02", records: 3, tokens: { input: 100, output: 50, cacheRead: 25, cacheWrite: 10, reasoning: 15, total: 200 }, cost: 0.1234, unsubsidizedCost: 0.5678 }],
       },
     },
   };
@@ -109,8 +110,10 @@ describe("repo overview route content", () => {
     expect(screen.getByText("Cache tokens")).toBeTruthy();
     expect(screen.getByText("Total tokens")).toBeTruthy();
     expect(screen.getAllByText("200").length).toBeGreaterThan(0);
-    expect(screen.getByText("Estimated cost")).toBeTruthy();
-    expect(screen.getAllByText("$0.1234").length).toBeGreaterThan(0);
+    expect(screen.getByText("AI cost")).toBeTruthy();
+    expect(screen.getAllByText("$0.57").length).toBeGreaterThan(0);
+    expect(screen.getByText("Recorded: $0.12")).toBeTruthy();
+    expect(screen.getAllByText("$0.12").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Messages").length).toBeGreaterThan(0);
     expect(screen.getByText("opencode")).toBeTruthy();
     expect(screen.getByText("gpt-5.5")).toBeTruthy();

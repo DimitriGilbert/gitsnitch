@@ -2,6 +2,8 @@ export type { AnonymizationOptions, ReportAnonymizationMeta } from "./anonymize.
 export { anonymizeReport } from "./anonymize.js";
 
 export type {
+  AiModelPricing,
+  AiModelPricingCandidate,
   AiClientId,
   AiSourceAttributionStatus,
   AiTokenBreakdown,
@@ -105,10 +107,12 @@ export {
   parseOpenCodeUsageFile,
   parseOpenCodeUsageSqlite,
   parsePiUsageJsonl,
+  estimateAiUsageRecordCost,
   summarizeAiUsage,
   summarizeAiUsageBreakdowns,
   summarizeAiUsageForRepo,
   summarizeAiUsageForRepos,
+  withEstimatedAiUsageCosts,
 } from "./ai-usage/index.js";
 export {
   GitSnitchConfigError,

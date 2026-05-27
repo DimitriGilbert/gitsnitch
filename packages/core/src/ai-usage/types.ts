@@ -28,12 +28,14 @@ export interface AiUsageRecord {
   readonly sourceAttribution: AiSourceAttributionStatus;
   readonly tokens: AiTokenBreakdown;
   readonly cost?: number;
+  readonly unsubsidizedCost?: number;
 }
 
 export interface AiUsageSummary {
   readonly records: number;
   readonly tokens: AiTokenBreakdown;
   readonly cost: number;
+  readonly unsubsidizedCost?: number;
 }
 
 export interface AiUsageBreakdownItem extends AiUsageSummary {

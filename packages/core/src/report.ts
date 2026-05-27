@@ -42,13 +42,15 @@ export interface RepoReportProgressEvent {
 export interface ScanReportProgressEvent {
   readonly kind: "scan";
   readonly directory: string;
-  readonly phase: "discover" | "repo-start" | "repo-skip" | "repo-complete" | "complete";
+  readonly phase: "discover" | "ai-usage" | "repo-start" | "repo-skip" | "repo-complete" | "complete";
   readonly repositoryPath?: string;
   readonly relativePath?: string;
   readonly discovered?: number;
   readonly completed?: number;
   readonly total?: number;
 }
+
+const SCAN_REPOSITORY_CONCURRENCY = 4;
 
 export interface GenerateScanReportOptions extends Omit<ScanReportOptions, "scan">, ScanPeriodOptions {
   readonly scan?: Partial<ScanOptions>;
@@ -91,13 +93,17 @@ export async function generateScanReport(
     exclude: parsedOptions.scan.excludePatterns,
   });
   dependencies.onProgress?.({ kind: "scan", directory: parsedOptions.directory, phase: "discover", discovered: discovered.length });
-  const aiUsageRecords = parsedOptions.aiUsage === true
-    ? await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots })
-    : undefined;
+  let aiUsageRecords: Awaited<ReturnType<typeof collectAiUsageRecords>> | undefined;
+  if (parsedOptions.aiUsage === true) {
+    dependencies.onProgress?.({ kind: "scan", directory: parsedOptions.directory, phase: "ai-usage" });
+    aiUsageRecords = await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots });
+  }
 
   let completed = 0;
-  const settled = await Promise.allSettled(
-    discovered.map(async (repository): Promise<ScanProjectReport | undefined> => {
+  const settled = await mapSettledWithConcurrency(
+    discovered,
+    SCAN_REPOSITORY_CONCURRENCY,
+    async (repository): Promise<ScanProjectReport | undefined> => {
       dependencies.onProgress?.({
         kind: "scan",
         directory: parsedOptions.directory,
@@ -145,7 +151,7 @@ export async function generateScanReport(
         repository: summarizeScannedRepository(report.repository, repository.relativePath),
         report,
       };
-    }),
+    },
   );
   dependencies.onProgress?.({ kind: "scan", directory: parsedOptions.directory, phase: "complete", completed, total: discovered.length });
 
@@ -204,8 +210,38 @@ function toReportAiUsageProjectSummary(summary: ReportAiUsageProjectSummary): Re
     records: summary.records,
     tokens: summary.tokens,
     cost: summary.cost,
+    ...(summary.unsubsidizedCost === undefined ? {} : { unsubsidizedCost: summary.unsubsidizedCost }),
     breakdowns: summary.breakdowns,
   };
+}
+
+async function mapSettledWithConcurrency<TInput, TOutput>(
+  items: readonly TInput[],
+  concurrency: number,
+  mapper: (item: TInput, index: number) => Promise<TOutput>,
+): Promise<readonly PromiseSettledResult<TOutput>[]> {
+  const results: PromiseSettledResult<TOutput>[] = new Array<PromiseSettledResult<TOutput>>(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const item = items[index];
+      if (item === undefined) {
+        continue;
+      }
+      try {
+        results[index] = { status: "fulfilled", value: await mapper(item, index) };
+      } catch (reason) {
+        results[index] = { status: "rejected", reason };
+      }
+    }
+  }
+
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
 }
 
 async function prepareRepoReport(

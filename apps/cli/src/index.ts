@@ -468,6 +468,8 @@ function formatScanProgressEvent(event: Extract<ReportProgressEvent, { readonly 
       return event.discovered === undefined
         ? `scan: discovering repositories (${event.directory})`
         : `scan: discovered ${event.discovered} repositories (${event.directory})`;
+    case "ai-usage":
+      return `scan: collecting AI usage (${event.directory})`;
     case "repo-start":
       return `scan: analyzing repository ${formatScanPosition(event, 1)}${event.relativePath ?? event.repositoryPath ?? "unknown"}`;
     case "repo-skip":
