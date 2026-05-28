@@ -1,5 +1,4 @@
 import { buttonVariants } from "@git-snitch/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@git-snitch/ui/components/card";
 import { cn } from "@git-snitch/ui/lib/utils";
 import type { ReactNode } from "react";
 
@@ -49,12 +48,12 @@ type AppShellProps = {
 };
 
 export function Header({ title, titleHref, eyebrow, description, actions }: HeaderProps) {
-  const titleContent = <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>;
+  const titleContent = <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{title}</h1>;
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75">
-      <div className="mx-auto flex w-full flex-col gap-6 px-6 py-8 sm:px-10 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-4xl">
+      <div className="mx-auto flex w-full flex-col gap-3 px-6 py-4 sm:px-10 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
           {eyebrow ? <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">{eyebrow}</p> : null}
           {titleHref ? (
             <a href={titleHref} target="_blank" rel="noopener noreferrer" className="hover:underline">
@@ -63,7 +62,7 @@ export function Header({ title, titleHref, eyebrow, description, actions }: Head
           ) : (
             titleContent
           )}
-          {description ? <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p> : null}
+          {description ? <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {actions}
@@ -107,7 +106,7 @@ export function Navigation({ items, label = "Report sections" }: NavigationProps
   );
 }
 
-export function StatsGrid({
+export function StatsBar({
   stats,
   emptyTitle = "No report statistics yet",
   emptyDescription = "This report does not include enough data for summary statistics.",
@@ -117,19 +116,15 @@ export function StatsGrid({
   }
 
   return (
-    <section aria-label="Report summary statistics" className="grid grid-flow-dense gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
-        <Card key={stat.label} className="min-h-32 shadow-none">
-          <CardHeader>
-            <CardTitle className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{stat.label}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tracking-tight text-foreground">{stat.value}</p>
-            {stat.description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{stat.description}</p> : null}
-          </CardContent>
-        </Card>
+    <p className="text-sm leading-7 text-muted-foreground" aria-label="Report summary statistics">
+      {stats.map((stat, index) => (
+        <span key={stat.label}>
+          {index > 0 ? <span className="mx-2 opacity-40">·</span> : null}
+          <strong className="font-medium text-foreground">{stat.value}</strong>{" "}
+          {stat.label.toLowerCase()}
+        </span>
       ))}
-    </section>
+    </p>
   );
 }
 

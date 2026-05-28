@@ -1,11 +1,12 @@
 import type { CommitRecord, GitHubRepoMeta, RepoReportData, ReportData } from "@git-snitch/core";
+import type { ReactNode } from "react";
 
 import { AiUsagePanel } from "./ai-usage.js";
 import { CommitActivityChart, deriveCommitActivityData } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
-import { StatsGrid } from "./layout.js";
+import { StatsBar } from "./layout.js";
 import { normalizeGitRemote } from "./remote-url.js";
-import { Section, SectionGrid, SectionHeader, SectionStat } from "./section.js";
+import { Section, DefinitionList, SectionHeader } from "./section.js";
 
 type StreakSummary =
   | {
@@ -191,18 +192,12 @@ function StreakCard({ streak }: { readonly streak: StreakSummary }) {
         title="Commit streak"
         description="Consecutive UTC commit days ending at the latest commit in this report."
       />
-      <SectionGrid cols={2}>
-        <SectionStat
-          label="Current"
-          value={String(streak.current)}
-          description={`Ending ${streak.anchorDate}`}
-        />
-        <SectionStat
-          label="Longest"
-          value={String(streak.longest)}
-          description="Best consecutive-day run"
-        />
-      </SectionGrid>
+      <DefinitionList
+        items={[
+          { label: "Current", value: `${String(streak.current)} day${streak.current !== 1 ? "s" : ""}` },
+          { label: "Longest", value: `${String(streak.longest)} day${streak.longest !== 1 ? "s" : ""}` },
+        ]}
+      />
     </Section>
   );
 }
@@ -233,22 +228,22 @@ function RepositoryInfoSection({ report }: { readonly report: RepoReportData }) 
     ? normalizeGitRemote(repo.remoteUrl)
     : undefined;
 
+  const items: { label: string; value: string | ReactNode }[] = [
+    { label: "Name", value: repo.name },
+    { label: "Path", value: repo.path },
+    ...(repo.currentBranch ? [{ label: "Branch", value: repo.currentBranch }] : []),
+    ...(httpsUrl !== undefined ? [{
+      label: "Remote",
+      value: <a href={httpsUrl} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">{httpsUrl}</a>,
+    }] : []),
+    ...(repo.firstCommitAt !== undefined ? [{ label: "First commit", value: formatDate(repo.firstCommitAt) }] : []),
+    ...(repo.lastCommitAt !== undefined ? [{ label: "Last commit", value: formatDate(repo.lastCommitAt) }] : []),
+  ];
+
   return (
     <Section ariaLabel="Repository information">
       <SectionHeader title="Repository info" />
-      <SectionGrid cols={3}>
-        <SectionStat label="Name" value={repo.name} />
-        <SectionStat label="Path" value={repo.path} />
-        {repo.currentBranch ? <SectionStat label="Branch" value={repo.currentBranch} /> : null}
-        {httpsUrl !== undefined ? (
-          <SectionStat
-            label="Remote"
-            value={<a href={httpsUrl} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">{httpsUrl}</a>}
-          />
-        ) : null}
-        {repo.firstCommitAt !== undefined ? <SectionStat label="First commit" value={formatDate(repo.firstCommitAt)} /> : null}
-        {repo.lastCommitAt !== undefined ? <SectionStat label="Last commit" value={formatDate(repo.lastCommitAt)} /> : null}
-      </SectionGrid>
+      <DefinitionList items={items} />
     </Section>
   );
 }
@@ -268,7 +263,7 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
   if (report.commits.length === 0 && report.contributors.length === 0) {
     return (
       <div className="grid gap-5">
-        <StatsGrid stats={buildOverviewStats(report)} />
+        <StatsBar stats={buildOverviewStats(report)} />
         <RepositoryInfoSection report={report} />
         {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
         {report.aiUsage !== undefined ? <AiUsagePanel usage={report.aiUsage} /> : null}
@@ -282,7 +277,7 @@ export function RepoOverview({ report }: { readonly report: ReportData }) {
 
   return (
     <div className="grid gap-5">
-      <StatsGrid stats={buildOverviewStats(report)} />
+      <StatsBar stats={buildOverviewStats(report)} />
       <RepositoryInfoSection report={report} />
       {githubMeta !== undefined ? <GitHubMetaBar meta={githubMeta} /> : null}
       {report.aiUsage !== undefined ? <AiUsagePanel usage={report.aiUsage} /> : null}

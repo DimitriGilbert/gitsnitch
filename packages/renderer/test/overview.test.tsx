@@ -73,11 +73,11 @@ describe("repo overview route content", () => {
   it("renders repository totals, streaks, and a chart preview from repo data", () => {
     render(<RepoOverview report={repoReportFixture} />);
 
-    expect(screen.getByText("Total commits")).toBeTruthy();
-    expect(screen.getByText("Contributors")).toBeTruthy();
-    expect(screen.getByText("Additions")).toBeTruthy();
-    expect(screen.getByText("Deletions")).toBeTruthy();
-    expect(screen.getByText("LoC")).toBeTruthy();
+    expect(screen.getByText("total commits")).toBeTruthy();
+    expect(screen.getByText("contributors")).toBeTruthy();
+    expect(screen.getByText("additions")).toBeTruthy();
+    expect(screen.getByText("deletions")).toBeTruthy();
+    expect(screen.getByText("loc")).toBeTruthy();
     expect(screen.getAllByText("1").length).toBeGreaterThan(0);
     expect(screen.getByText("12")).toBeTruthy();
     expect(screen.getByText("42")).toBeTruthy();
@@ -88,8 +88,8 @@ describe("repo overview route content", () => {
   it("renders an explicit empty repository state without hiding zero totals", () => {
     render(<RepoOverview report={emptyRepoReport()} />);
 
-    expect(screen.getByText("Total commits")).toBeTruthy();
-    expect(screen.getByText("Contributors")).toBeTruthy();
+    expect(screen.getByText("total commits")).toBeTruthy();
+    expect(screen.getByText("contributors")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "This repository has no commit activity yet" })).toBeTruthy();
     expect(screen.getByText(/there are no commits or contributors to summarize/i)).toBeTruthy();
   });

@@ -21,12 +21,12 @@ import {
   deriveScanCommitTimelineData,
 } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
-import { StatsGrid } from "./layout.js";
+import { StatsBar } from "./layout.js";
 import { RepoOverview } from "./overview.js";
 import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes.js";
 import { normalizeGitRemote } from "./remote-url.js";
 import { CommitsRoute, ContributorsRoute } from "./repo-routes.js";
-import { Section, SectionHeader, SectionStat } from "./section.js";
+import { Section, SectionHeader } from "./section.js";
 import { DataTable } from "./tables.js";
 
 type ScanRouteProps = {
@@ -149,6 +149,7 @@ function buildScanStats(report: ScanReportData) {
     { label: "Commits", value: formatNumber(report.analysis.totalCommits), description: "Commits aggregated across scanned projects" },
     { label: "Contributors", value: formatNumber(report.analysis.totalContributors), description: "Contributor identities counted by the scan analysis" },
     { label: "Languages", value: formatNumber(report.analysis.languages.length), description: "Detected language groups across projects" },
+    { label: "Max depth", value: String(report.options.scan.maxDepth), description: "Scan depth limit" },
   ];
 }
 
@@ -258,21 +259,7 @@ const crossProjectContributorColumns: ColumnDef<ContributorAggregate>[] = [
   { accessorKey: "deletions", header: "Deletions", cell: ({ row }) => formatNumber(row.original.deletions) },
 ];
 
-function ScanIntro({ report }: { readonly report: ScanReportData }) {
-  return (
-    <Section className="md:grid-cols-[minmax(0,1fr)_18rem] md:items-end md:grid">
-      <SectionHeader
-        title="Scan overview"
-        description={`Evidence across ${report.projects.length} repositories: repository totals, comparable project rows, and contributors whose work spans more than one codebase.`}
-      />
-      <SectionStat
-        label="Scan scope"
-        value={`Max depth ${report.options.scan.maxDepth}`}
-        description={`Generated ${report.generatedAt}`}
-      />
-    </Section>
-  );
-}
+
 
 function ProjectComparison({ report }: { readonly report: ScanReportData }) {
   const entries = deriveScanProjectRouteEntries(report);
@@ -378,8 +365,7 @@ export function ScanOverview({ report }: ScanRouteProps) {
 
   return (
     <div className="grid gap-5">
-      <ScanIntro report={report} />
-      <StatsGrid stats={buildScanStats(report)} />
+      <StatsBar stats={buildScanStats(report)} />
       {report.analysis.aiUsage !== undefined ? (
         <AiUsagePanel
           title="Scan AI usage"

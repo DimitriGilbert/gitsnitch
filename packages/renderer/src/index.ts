@@ -29,7 +29,7 @@ export { readInjectedReportData, isReadyReportData, useIsRepoReport, useIsScanRe
 export { EmptyState, EmptyStateAction } from "./empty-state.js";
 export { downloadCsv, downloadJson, downloadTextFile, serializeCsv, serializeReportJson } from "./export.js";
 export { createInlineHtmlPlugin, inlineHtmlAssets } from "./inline-plugin.js";
-export { AppShell, Header, Navigation, StatsGrid } from "./layout.js";
+export { AppShell, Header, Navigation, StatsBar } from "./layout.js";
 export { injectReportDataIntoHtml, REPORT_DATA_PLACEHOLDER, serializeReportDataForHtml } from "./serialization.js";
 export { CommitsTable, ContributorsTable, DataTable, HotspotsTable } from "./tables.js";
 export type {

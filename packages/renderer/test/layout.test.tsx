@@ -4,7 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { EmptyState } from "../src/empty-state";
-import { AppShell, Navigation, StatsGrid } from "../src/layout";
+import { AppShell, Navigation, StatsBar } from "../src/layout";
 import { ThemeProvider } from "../src/theme";
 
 afterEach(() => {
@@ -43,17 +43,15 @@ describe("renderer layout foundations", () => {
     expect(screen.queryByRole("link", { name: "Charts" })).toBeNull();
   });
 
-  it("renders stat cards when summary data exists", () => {
-    render(<StatsGrid stats={[{ label: "Commits", value: 7, description: "Included commits" }]} />);
+  it("renders an inline stats bar when summary data exists", () => {
+    render(<StatsBar stats={[{ label: "Commits", value: 7, description: "Included commits" }]} />);
 
-    expect(screen.getByRole("region", { name: "Report summary statistics" })).toBeTruthy();
-    expect(screen.getByText("Commits")).toBeTruthy();
     expect(screen.getByText("7")).toBeTruthy();
-    expect(screen.getByText("Included commits")).toBeTruthy();
+    expect(screen.getByText("commits")).toBeTruthy();
   });
 
   it("renders an explicit empty state when summary data is absent", () => {
-    render(<StatsGrid stats={[]} emptyTitle="No summary" emptyDescription="The fixture is empty." />);
+    render(<StatsBar stats={[]} emptyTitle="No summary" emptyDescription="The fixture is empty." />);
 
     expect(screen.getByRole("heading", { name: "No summary" })).toBeTruthy();
     expect(screen.getByText("The fixture is empty.")).toBeTruthy();

@@ -16,7 +16,7 @@ import { templates as customTemplates } from "virtual:git-snitch-custom-template
 import { useReportData } from "./data.js";
 import { EmptyState } from "./empty-state.js";
 import { downloadCsv, downloadJson } from "./export.js";
-import { AppShell, StatsGrid } from "./layout.js";
+import { AppShell, StatsBar } from "./layout.js";
 import { ChartsRoute } from "./charts-route.js";
 import { RepoOverview } from "./overview.js";
 import { HotspotsRoute, QualityRoute } from "./quality-hotspots-routes.js";
@@ -240,7 +240,7 @@ function OverviewRoute() {
   const state = useReportData();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "repo" && customTemplates.overview) {
@@ -254,7 +254,7 @@ function CommitsRouteContainer() {
   const state = useReportData();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "repo" && customTemplates.commits) {
@@ -268,7 +268,7 @@ function ContributorsRouteContainer() {
   const state = useReportData();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "repo" && customTemplates.contributors) {
@@ -282,7 +282,7 @@ function ChartsRouteContainer() {
   const state = useReportData();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "repo" && customTemplates.charts) {
@@ -296,7 +296,7 @@ function QualityRouteContainer() {
   const state = useReportData();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "repo" && customTemplates.quality) {
@@ -310,7 +310,7 @@ function HotspotsRouteContainer() {
   const state = useReportData();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "repo" && customTemplates.hotspots) {
@@ -324,7 +324,7 @@ function ScanOverviewRouteContainer() {
   const state = useReportData();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "scan" && customTemplates.scanOverview) {
@@ -339,7 +339,7 @@ function ScanProjectRouteContainer() {
   const params = scanProjectRoute.useParams();
 
   if (state.status !== "ready") {
-    return <StatsGrid stats={[]} />;
+    return <StatsBar stats={[]} />;
   }
 
   if (state.report.kind === "scan" && customTemplates.scanProject) {

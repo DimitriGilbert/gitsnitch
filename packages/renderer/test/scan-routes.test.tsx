@@ -217,8 +217,8 @@ describe("scan report routes", () => {
   it("renders aggregate stats, project comparison, and cross-project contributors", () => {
     render(<ScanOverview report={multiProjectScanReport()} />);
 
-    expect(screen.getByRole("heading", { name: "Scan overview" })).toBeTruthy();
-    expect(screen.getByText("Repositories")).toBeTruthy();
+    expect(screen.getByText("max depth")).toBeTruthy();
+    expect(screen.getByText("repositories")).toBeTruthy();
     expect(screen.getByRole("region", { name: "Project comparison" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "api" }).getAttribute("href")).toMatch(/^#\/scan\/projects\/services-api-[a-z0-9]+$/);
     expect(screen.getByRole("region", { name: "Cross-project contributors" })).toBeTruthy();
@@ -261,7 +261,7 @@ describe("scan report routes", () => {
   it("explains empty scan results with scan scope guidance", () => {
     render(<ScanOverview report={emptyScanReport()} />);
 
-    expect(screen.getByText("Repositories")).toBeTruthy();
+    expect(screen.getByText("repositories")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "No repositories matched this scan" })).toBeTruthy();
     expect(screen.getByText(/max depth, include patterns, and exclude patterns/i)).toBeTruthy();
   });

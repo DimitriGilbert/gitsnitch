@@ -12,7 +12,7 @@ import {
 } from "./charts.js";
 import { EmptyState } from "./empty-state.js";
 import { downloadJson } from "./export.js";
-import { Section, SectionGrid, SectionHeader, SectionStat } from "./section.js";
+import { Section, DefinitionList, SectionGrid, SectionHeader } from "./section.js";
 import { CommitsTable, ContributorsTable } from "./tables.js";
 import type { DownloadResult } from "./export.js";
 
@@ -148,11 +148,13 @@ function CommitsSummary({ commits }: { readonly commits: readonly CommitRecord[]
 
   return (
     <Section ariaLabel="Commit ledger summary">
-      <SectionGrid cols={3}>
-        <SectionStat label="Touched files" value={formatNumber(touchedFiles)} description="Unique paths changed by visible commits." />
-        <SectionStat label="Additions" value={formatNumber(additions)} description="Lines added across commit file stats." />
-        <SectionStat label="Deletions" value={formatNumber(deletions)} description="Lines removed across commit file stats." />
-      </SectionGrid>
+      <DefinitionList
+        items={[
+          { label: "Touched files", value: formatNumber(touchedFiles) },
+          { label: "Additions", value: formatNumber(additions) },
+          { label: "Deletions", value: formatNumber(deletions) },
+        ]}
+      />
     </Section>
   );
 }
@@ -218,11 +220,13 @@ function ContributorTimeline({ contributors }: { readonly contributors: readonly
 
   return (
     <Section ariaLabel="Contributor activity timeline">
-      <SectionGrid cols={3}>
-        <SectionStat label="Activity span" value={`${formatNumber(summary.activeDays)} days`} description={`${summary.firstDate} through ${summary.lastDate}.`} />
-        <SectionStat label="Latest contributor" value={summary.latestContributor} description="Contributor with the most recent recorded commit." />
-        <SectionStat label="Tracked people" value={formatNumber(contributors.length)} description="Contributor identities in this repository report." />
-      </SectionGrid>
+      <DefinitionList
+        items={[
+          { label: "Activity span", value: `${formatNumber(summary.activeDays)} days` },
+          { label: "Latest contributor", value: summary.latestContributor },
+          { label: "Tracked people", value: formatNumber(contributors.length) },
+        ]}
+      />
     </Section>
   );
 }
