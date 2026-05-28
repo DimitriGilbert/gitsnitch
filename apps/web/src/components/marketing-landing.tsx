@@ -1,8 +1,8 @@
 import { buttonVariants } from "@git-snitch/ui/components/button";
 import { cn } from "@git-snitch/ui/lib/utils";
-import { ArrowRight, Boxes, Code2, ExternalLink, FileArchive, MonitorDown, ScanSearch, ShieldCheck, Star } from "lucide-react";
+import { ArrowRight, Boxes, Check, Code2, Copy, ExternalLink, FileArchive, MonitorDown, ScanSearch, ShieldCheck, Star } from "lucide-react";
 import type { RefObject } from "react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const npmPackageUrl = "https://www.npmjs.com/package/@git-snitch/cli";
 const githubUrl = "https://github.com/DimitriGilbert/gitsnitch";
@@ -70,6 +70,28 @@ const usageSteps = [
     commands: ["npx @git-snitch/cli repo --anon -o report.html"],
   },
 ] as const;
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [text]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="shrink-0 rounded-lg border border-white/10 bg-black/50 p-1.5 text-zinc-500 opacity-0 backdrop-blur-sm transition-all hover:text-white group-hover:opacity-100"
+      aria-label="Copy command"
+    >
+      {copied ? <Check className="size-3.5 text-lime-400" /> : <Copy className="size-3.5" />}
+    </button>
+  );
+}
 
 export function MarketingLanding() {
   const mainRef = useRef<HTMLElement>(null);
@@ -222,12 +244,18 @@ function Hero() {
           </a>
         </div>
         <div className="mt-12 flex flex-col items-center gap-4">
-          <code className="rounded-full border border-white/10 bg-black/60 px-5 py-2.5 text-sm text-white backdrop-blur-sm">
-            $ npx @git-snitch/cli repo --open
-          </code>
-          <code className="rounded-full border border-white/10 bg-black/60 px-5 py-2.5 text-sm text-white backdrop-blur-sm">
-            $ npx @git-snitch/cli scan . --period 14d --open --ai-usage
-          </code>
+          <div className="group relative flex items-center gap-2 rounded-full border border-white/10 bg-black/60 pr-2 backdrop-blur-sm">
+            <code className="px-5 py-2.5 text-sm text-white">
+              $ npx @git-snitch/cli repo --open
+            </code>
+            <CopyButton text="npx @git-snitch/cli repo --open" />
+          </div>
+          <div className="group relative flex items-center gap-2 rounded-full border border-white/10 bg-black/60 pr-2 backdrop-blur-sm">
+            <code className="px-5 py-2.5 text-sm text-white">
+              $ npx @git-snitch/cli scan . --period 14d --open --ai-usage
+            </code>
+            <CopyButton text="npx @git-snitch/cli scan . --period 14d --open --ai-usage" />
+          </div>
         </div>
       </div>
     </section>
@@ -296,7 +324,8 @@ function UsageGuide() {
                 {step.commands.map((command) => (
                   <div key={command} className="group relative flex items-center gap-3 px-6 py-2.5 transition-colors hover:bg-white/[0.03]">
                     <span className="shrink-0 select-none text-zinc-600">$</span>
-                    <code className="text-sm leading-7 text-lime-100">{command}</code>
+                    <code className="flex-1 text-sm leading-7 text-lime-100">{command}</code>
+                    <CopyButton text={command} />
                   </div>
                 ))}
               </div>
