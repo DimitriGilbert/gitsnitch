@@ -54,5 +54,9 @@ export function injectReportDataIntoHtml(templateHtml: string, report: ReportDat
     throw new Error(`Report template must contain exactly one ${REPORT_DATA_PLACEHOLDER} data placeholder.`);
   }
 
-  return templateHtml.replace(placeholderLiteral, serializeReportDataForHtml(report));
+  // Function replacement, deliberately not a string: String.replace
+  // interprets $`, $', $& and $$ inside a string replacement, so any commit
+  // message containing them (e.g. a regex anchored with $') would splice
+  // template fragments into the middle of the payload and corrupt the report.
+  return templateHtml.replace(placeholderLiteral, () => serializeReportDataForHtml(report));
 }
