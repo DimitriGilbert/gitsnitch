@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { RepoReportData } from "@git-snitch/core";
@@ -107,16 +107,18 @@ describe("repo overview route content", () => {
     expect(screen.getByText("AI usage")).toBeTruthy();
     expect(screen.getByText("Input tokens")).toBeTruthy();
     expect(screen.getByText("Output tokens")).toBeTruthy();
-    expect(screen.getByText("Cache tokens")).toBeTruthy();
     expect(screen.getByText("Total tokens")).toBeTruthy();
+    expect(screen.getAllByText("cached 35 (35%)").length).toBeGreaterThan(0);
     expect(screen.getAllByText("200").length).toBeGreaterThan(0);
-    expect(screen.getByText("AI cost")).toBeTruthy();
+    expect(screen.getByText("Cost (estimated)")).toBeTruthy();
     expect(screen.getAllByText("$0.57").length).toBeGreaterThan(0);
-    expect(screen.getByText("Recorded: $0.12")).toBeTruthy();
-    expect(screen.getAllByText("$0.12").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("recorded $0.12").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Messages").length).toBeGreaterThan(0);
-    expect(screen.getByText("opencode")).toBeTruthy();
     expect(screen.getByText("gpt-5.5")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Harness" }));
+    expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
+    expect(screen.getByText("opencode")).toBeTruthy();
   });
 
   it("renders an explicit AI usage empty state when totals are zero", () => {
@@ -124,7 +126,7 @@ describe("repo overview route content", () => {
 
     expect(screen.getByText("AI usage")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "No AI usage matched this report" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Client breakdown unavailable" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Model breakdown unavailable" })).toBeTruthy();
   });
 
   it("derives current and longest streaks from consecutive commit dates", () => {

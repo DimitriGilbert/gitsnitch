@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import type { ContributorSummary, RepoReportData, ReportData, ScanProjectReport, ScanReportData } from "@git-snitch/core";
 import { cn } from "@git-snitch/ui/lib/utils";
 
-import { AiUsagePanel, formatAiUsageCost, formatAiUsageTokens } from "./ai-usage.js";
+import { AiUsagePanel, AiCostCell, deriveAiProjectSlices, formatAiUsageTokens } from "./ai-usage.js";
 import { ChartsRoute } from "./charts-route.js";
 import {
   LanguageDistributionChart,
@@ -67,6 +67,7 @@ type ProjectComparisonRow = {
   readonly aiOutputTokens: number | undefined;
   readonly aiCacheTokens: number | undefined;
   readonly aiCost: number | undefined;
+  readonly aiUnsubsidizedCost: number | undefined;
 };
 
 export type ScanProjectRouteEntry = {
@@ -236,10 +237,22 @@ const projectComparisonBaseColumns: ColumnDef<ProjectComparisonRow>[] = [
 const projectComparisonAiUsageColumns: ColumnDef<ProjectComparisonRow>[] = [
   { accessorKey: "aiTotalTokens", header: "AI total", cell: ({ row }) => row.original.aiTotalTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiTotalTokens) },
   { accessorKey: "aiMessages", header: "AI messages", cell: ({ row }) => row.original.aiMessages === undefined ? "—" : formatNumber(row.original.aiMessages) },
-  { accessorKey: "aiInputTokens", header: "AI input", cell: ({ row }) => row.original.aiInputTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiInputTokens) },
+  {
+    id: "aiInput",
+    header: "AI input",
+    cell: ({ row }) => row.original.aiInputTokens === undefined ? "—" : (
+      <span className="flex flex-col">
+        <span>{formatAiUsageTokens(row.original.aiInputTokens)}</span>
+        {row.original.aiCacheTokens !== undefined && row.original.aiCacheTokens > 0 ? <span className="text-xs text-muted-foreground">cached {formatAiUsageTokens(row.original.aiCacheTokens)}</span> : null}
+      </span>
+    ),
+  },
   { accessorKey: "aiOutputTokens", header: "AI output", cell: ({ row }) => row.original.aiOutputTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiOutputTokens) },
-  { accessorKey: "aiCacheTokens", header: "AI cache", cell: ({ row }) => row.original.aiCacheTokens === undefined ? "—" : formatAiUsageTokens(row.original.aiCacheTokens) },
-  { accessorKey: "aiCost", header: "AI cost", cell: ({ row }) => row.original.aiCost === undefined ? "—" : formatAiUsageCost(row.original.aiCost) },
+  {
+    id: "aiCost",
+    header: "AI cost",
+    cell: ({ row }) => row.original.aiCost === undefined ? "—" : <AiCostCell cost={row.original.aiCost} unsubsidizedCost={row.original.aiUnsubsidizedCost} size="table" />,
+  },
 ];
 
 const crossProjectContributorColumns: ColumnDef<ContributorAggregate>[] = [
@@ -289,6 +302,7 @@ function ProjectComparison({ report }: { readonly report: ScanReportData }) {
           aiOutputTokens: usage?.tokens.output,
           aiCacheTokens: usage !== undefined ? usage.tokens.cacheRead + usage.tokens.cacheWrite : undefined,
           aiCost: usage?.cost,
+          aiUnsubsidizedCost: usage?.unsubsidizedCost,
         };
       }),
     [entries],
@@ -371,6 +385,7 @@ export function ScanOverview({ report }: ScanRouteProps) {
           title="Scan AI usage"
           description="Total matched local assistant usage across repositories in this scan. Workspace paths are not rendered in the HTML report."
           usage={report.analysis.aiUsage}
+          projects={deriveAiProjectSlices(report.projects)}
         />
       ) : null}
       <ProjectComparison report={report} />

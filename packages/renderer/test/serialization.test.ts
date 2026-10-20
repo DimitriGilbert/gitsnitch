@@ -74,11 +74,15 @@ describe("report data HTML serialization", () => {
     // String.replace splice everything after the placeholder match into the
     // middle of the payload, corrupting the report so the renderer fell back
     // to "Report data has not been injected".
+    const baseCommit = reportWithScriptBreakingContent.commits.at(0);
+    if (!baseCommit) {
+      throw new Error("Expected fixture to include a commit");
+    }
     const report = {
       ...reportWithScriptBreakingContent,
       commits: [
         {
-          ...reportWithScriptBreakingContent.commits[0],
+          ...baseCommit,
           message:
             "Fix: routeFileIgnorePattern: '\\.test\\.(ts|tsx)$' on tanstackStart() — patterns: $& `$` $$",
         },

@@ -25,7 +25,7 @@ import type { AiUsageBreakdownItem, CommitRecord, ContributorSummary, RepoReport
 
 import { EmptyState } from "./empty-state.js";
 
-const chartPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"] as const;
+export const chartPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"] as const;
 const shortWeekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const staticChartProps = { isAnimationActive: false } as const;
 type Weekday = (typeof shortWeekdays)[number];
@@ -701,7 +701,7 @@ export function deriveScanCommitTimelineData(projects: readonly ScanProjectRepor
   });
 }
 
-function projectColor(index: number, total: number): string {
+export function projectColor(index: number, total: number): string {
   const hue = (index * 360 / total + 15) % 360;
   return `oklch(0.65 0.17 ${hue})`;
 }

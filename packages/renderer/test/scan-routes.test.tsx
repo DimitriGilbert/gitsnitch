@@ -245,17 +245,18 @@ describe("scan report routes", () => {
     expect(screen.getByText("AI messages")).toBeTruthy();
     expect(screen.getByText("AI input")).toBeTruthy();
     expect(screen.getByText("AI output")).toBeTruthy();
-    expect(screen.getByText("AI cache")).toBeTruthy();
+    expect(screen.getAllByText("cached 50").length).toBeGreaterThan(0);
     expect(screen.getAllByText("AI cost").length).toBeGreaterThan(0);
-    expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
-    expect(screen.getByRole("table", { name: "Model breakdown" })).toBeTruthy();
     expect(screen.getByText("pi-default")).toBeTruthy();
     expect(screen.getByText("claude-sonnet")).toBeTruthy();
-    expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("claude").length).toBeGreaterThan(0);
     expect(screen.getAllByText("400").length).toBeGreaterThan(0);
     expect(screen.getAllByText("$0.25").length).toBeGreaterThan(0);
     expect(screen.queryByText("/workspace/services/api")).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Harness" }));
+    expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
+    expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("claude").length).toBeGreaterThan(0);
   });
 
   it("explains empty scan results with scan scope guidance", () => {
@@ -323,6 +324,8 @@ describe("scan report routes", () => {
 
     expect(screen.getByRole("heading", { name: "api" })).toBeTruthy();
     expect(screen.getByText("AI usage")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Harness" }));
     expect(screen.getByRole("table", { name: "Client breakdown" })).toBeTruthy();
     expect(screen.getAllByText("pi").length).toBeGreaterThan(0);
     expect(screen.getAllByText("400").length).toBeGreaterThan(0);
