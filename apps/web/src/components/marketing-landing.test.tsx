@@ -25,7 +25,7 @@ describe("MarketingLanding", () => {
   it("documents accurate install and usage commands", () => {
     render(<MarketingLanding />);
 
-    const usage = screen.getByRole("heading", { name: /install it, write a file, choose when to open it/i }).closest("section");
+    const usage = screen.getByRole("heading", { name: /scan a single repo/i }).closest("section");
 
     if (usage === null) {
       throw new Error("Usage section was not rendered");
