@@ -8,6 +8,13 @@
  * when it is unavailable. Gemini projectHash-only, Amp thread data without path
  * metadata, and Kilo rows without session metadata remain unattributed by
  * design; unattributed records never match repository summaries.
+ *
+ * Token conventions are normalized per client: Claude, OpenCode, Kilo, Amp, and
+ * Pi report cache tokens outside of input, so their buckets are stored as
+ * reported, while ZCode and Gemini report input inclusive of cached tokens, so
+ * their parsers store input as the fresh (non-cached) portion. Across all
+ * clients a record's total is the sum of its buckets and never double-counts
+ * cached input.
  */
 export type {
   AiModelPricing,
@@ -57,6 +64,7 @@ export {
   parseOpenCodeUsageFile,
   parseOpenCodeUsageSqlite,
   parsePiUsageJsonl,
+  parseZcodeUsageSqlite,
 } from "./parsers.js";
 export {
   estimateAiUsageRecordCost,

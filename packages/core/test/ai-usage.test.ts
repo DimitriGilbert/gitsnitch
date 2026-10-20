@@ -17,6 +17,8 @@ import {
   parseOpenCodeUsageFile,
   parseOpenCodeUsageSqlite,
   parsePiUsageJsonl,
+  parseZcodeUsageSqlite,
+  summarizeAiUsage,
   summarizeAiUsageForRepo,
   summarizeAiUsageForRepos,
 } from "../src/index.js";
@@ -189,6 +191,82 @@ describe("AI usage parsers", () => {
     expect(records).toHaveLength(1);
     expect(records[0]?.workspacePath).toBe(repo);
     expect(records[0]?.tokens.total).toBe(23);
+  });
+
+  it("parses ZCode SQLite model usage with workspace attribution", () => {
+    const repo = tempPath("repo");
+    const db = tempPath("zcode.db");
+    createSqlite(db, `
+      CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT NOT NULL);
+      CREATE TABLE model_usage (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        model_id TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0,
+        reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_creation_input_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_read_input_tokens INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO session VALUES ('z1', '${repo.replaceAll("'", "''")}');
+      INSERT INTO model_usage VALUES ('u1', 'z1', 'GLM-5.3', 'builtin:zai-coding-plan', 1735689600000, 100, 20, 5, 12, 40);
+      INSERT INTO model_usage VALUES ('u2', 'z1', 'GLM-5.3-Flash', 'builtin:zai-coding-plan', 1735689601000, 291209, 91, 0, 0, 289984);
+    `);
+
+    const records = parseZcodeUsageSqlite(db);
+
+    expect(records).toHaveLength(2);
+    expect(records[0]?.client).toBe("zcode");
+    expect(records[0]?.sessionId).toBe("z1");
+    expect(records[0]?.workspacePath).toBe(repo);
+    expect(records[0]?.sourceAttribution).toBe("attributed");
+    expect(records[0]?.model).toBe("GLM-5.3");
+    expect(records[0]?.provider).toBe("builtin:zai-coding-plan");
+    expect(records[0]?.timestamp).toBe("2025-01-01T00:00:00.000Z");
+    expect(records[0]?.tokens).toMatchObject({ input: 48, output: 20, reasoning: 5, cacheWrite: 12, cacheRead: 40, total: 125 });
+    expect(records[1]?.tokens).toMatchObject({ input: 1225, output: 91, cacheRead: 289984, total: 291300 });
+  });
+
+  it("aggregates same-day/same-model zcode rows into one record with recordCount, and honors the date filter", () => {
+    const repo = tempPath("repo");
+    const db = tempPath("zcode-agg.db");
+    createSqlite(db, `
+      CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT NOT NULL);
+      CREATE TABLE model_usage (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        model_id TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0,
+        reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_creation_input_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_read_input_tokens INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO session VALUES ('z1', '${repo.replaceAll("'", "''")}');
+      INSERT INTO model_usage VALUES ('a1', 'z1', 'GLM-5.3', 'p', 1735689600000, 100, 20, 0, 0, 40);
+      INSERT INTO model_usage VALUES ('a2', 'z1', 'GLM-5.3', 'p', 1735693200000, 10, 2, 0, 0, 4);
+      INSERT INTO model_usage VALUES ('a3', 'z1', 'GLM-5.3', 'p', 1735862400000, 7, 1, 0, 0, 0);
+    `);
+
+    // All rows: day 1 groups a1+a2 (same session/model/day), day 2 keeps a3.
+    const all = parseZcodeUsageSqlite(db);
+    expect(all).toHaveLength(2);
+    expect(all[0]?.recordCount).toBe(2);
+    expect(all[0]?.tokens).toMatchObject({ input: 66, output: 22, cacheRead: 44, total: 132 });
+    expect(all[0]?.timestamp).toBe("2025-01-01T00:00:00.000Z");
+    expect(all[1]?.recordCount).toBe(1);
+    // Summaries count messages, not groups.
+    expect(summarizeAiUsage(all).records).toBe(3);
+
+    // Date filter becomes the SQL window: only the Jan 2 row survives.
+    const filtered = parseZcodeUsageSqlite(db, { since: "2025-01-02T00:00:00.000Z" });
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.recordCount).toBe(1);
+    expect(filtered[0]?.tokens).toMatchObject({ input: 7, output: 1, total: 8 });
   });
 });
 

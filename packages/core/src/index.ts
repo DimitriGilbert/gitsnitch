@@ -107,6 +107,7 @@ export {
   parseOpenCodeUsageFile,
   parseOpenCodeUsageSqlite,
   parsePiUsageJsonl,
+  parseZcodeUsageSqlite,
   estimateAiUsageRecordCost,
   summarizeAiUsage,
   summarizeAiUsageBreakdowns,

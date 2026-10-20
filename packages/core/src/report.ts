@@ -96,7 +96,7 @@ export async function generateScanReport(
   let aiUsageRecords: Awaited<ReturnType<typeof collectAiUsageRecords>> | undefined;
   if (parsedOptions.aiUsage === true) {
     dependencies.onProgress?.({ kind: "scan", directory: parsedOptions.directory, phase: "ai-usage" });
-    aiUsageRecords = await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots });
+    aiUsageRecords = await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots, dateFilter: { since: parsedOptions.since, until: parsedOptions.until } });
   }
 
   let completed = 0;
@@ -298,7 +298,7 @@ async function summarizeRepoAiUsage(
 ): Promise<ReportAiUsageProjectSummary> {
   dependencies.onProgress?.({ kind: "repo", repoPath: options.repoPath, phase: "ai-usage" });
   return toReportAiUsageProjectSummary(summarizeAiUsageForRepo(
-    await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots }),
+    await collectAiUsageRecords({ storeRoots: dependencies.aiUsageStoreRoots, dateFilter: { since: options.since, until: options.until } }),
     options.repoPath,
     { since: options.since, until: options.until },
   ));

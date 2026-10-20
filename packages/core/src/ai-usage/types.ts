@@ -1,8 +1,8 @@
 import type { IsoDateString } from "../json.js";
 
-export type AiClientId = "opencode" | "claude" | "codex" | "gemini" | "amp" | "kilo" | "pi";
+export type AiClientId = "opencode" | "claude" | "codex" | "gemini" | "amp" | "kilo" | "pi" | "zcode";
 
-export const AI_USAGE_CLIENTS = ["opencode", "claude", "codex", "gemini", "amp", "kilo", "pi"] as const satisfies readonly AiClientId[];
+export const AI_USAGE_CLIENTS = ["opencode", "claude", "codex", "gemini", "amp", "kilo", "pi", "zcode"] as const satisfies readonly AiClientId[];
 
 export interface AiTokenBreakdown {
   readonly input: number;
@@ -29,6 +29,14 @@ export interface AiUsageRecord {
   readonly tokens: AiTokenBreakdown;
   readonly cost?: number;
   readonly unsubsidizedCost?: number;
+  /**
+   * How many underlying messages this record carries when the parser
+   * pre-aggregates in SQL (zcode's store groups rows per session/day/model —
+   * its sqlite holds 100k+ rows and shipping each one through JSON would
+   * dominate report time). Parsers that emit one record per message omit it;
+   * summaries count `recordCount ?? 1` so totals stay honest either way.
+   */
+  readonly recordCount?: number;
 }
 
 export interface AiUsageSummary {
@@ -71,4 +79,11 @@ export type AiUsageStoreRoots = Readonly<Partial<Record<AiClientId, readonly str
 export interface AiUsageCollectionOptions {
   readonly clients?: readonly AiClientId[];
   readonly storeRoots?: AiUsageStoreRoots;
+  /**
+   * The report's since/until window, forwarded to parsers that can push it
+   * into their store query (zcode's sqlite) so a period report never
+   * materializes history outside its window. Parsers without query-side
+   * filtering ignore it — the shared date filter still narrows downstream.
+   */
+  readonly dateFilter?: AiUsageDateFilter;
 }

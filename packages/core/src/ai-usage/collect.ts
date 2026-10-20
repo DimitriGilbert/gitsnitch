@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Dirent } from "node:fs";
 
-import type { AiClientId, AiUsageCollectionOptions, AiUsageRecord, AiUsageStoreRoots } from "./types.js";
+import type { AiClientId, AiUsageCollectionOptions, AiUsageDateFilter, AiUsageRecord, AiUsageStoreRoots } from "./types.js";
 
 import { AI_USAGE_CLIENTS } from "./types.js";
 import {
@@ -16,6 +16,7 @@ import {
   parseOpenCodeUsageFile,
   parseOpenCodeUsageSqlite,
   parsePiUsageJsonl,
+  parseZcodeUsageSqlite,
 } from "./parsers.js";
 import { withEstimatedAiUsageCosts } from "./pricing.js";
 
@@ -31,13 +32,20 @@ const SQLITE_EXTENSIONS = [".db", ".sqlite", ".sqlite3"] as const;
 /** Collects local assistant usage records from known client stores. */
 export async function collectAiUsageRecords(options: AiUsageCollectionOptions = {}): Promise<readonly AiUsageRecord[]> {
   const clients = options.clients ?? clientsForOptions(options.storeRoots);
+  const dateFilter = options.dateFilter;
   const records: AiUsageRecord[] = [];
 
   for (const client of clients) {
     for (const root of rootsForClient(client, options.storeRoots)) {
       const files = await listStoreFiles(root);
       for (const file of files) {
-        records.push(...parseClientFile(client, file));
+        // Append per record: a spread (`records.push(...parsed)`) would pass
+        // every record as one argument, and V8 caps the argument list near
+        // 125k — a large store (zcode's sqlite holds 126k+ rows) overflows
+        // the call stack at exactly that size.
+        for (const record of parseClientFile(client, file, dateFilter)) {
+          records.push(record);
+        }
       }
     }
   }
@@ -74,6 +82,8 @@ function rootsForClient(client: AiClientId, overrides: AiUsageStoreRoots | undef
       return [join(home, ".kilo")];
     case "pi":
       return [join(home, ".pi")];
+    case "zcode":
+      return [join(home, ".zcode", "cli", "db")];
   }
 }
 
@@ -118,7 +128,7 @@ async function walkDirectory(directory: string, files: string[]): Promise<void> 
   }
 }
 
-function parseClientFile(client: AiClientId, path: string): readonly AiUsageRecord[] {
+function parseClientFile(client: AiClientId, path: string, dateFilter?: AiUsageDateFilter): readonly AiUsageRecord[] {
   try {
     switch (client) {
       case "opencode":
@@ -135,6 +145,8 @@ function parseClientFile(client: AiClientId, path: string): readonly AiUsageReco
         return hasSqliteExtension(path) ? parseKiloUsageSqlite(path) : [];
       case "pi":
         return path.endsWith(".jsonl") ? parsePiUsageJsonl(path) : [];
+      case "zcode":
+        return hasSqliteExtension(path) ? parseZcodeUsageSqlite(path, dateFilter) : [];
     }
   } catch (error) {
     throw new AiUsageCollectionError(`Unable to parse AI usage store file ${path}: ${formatError(error)}`);

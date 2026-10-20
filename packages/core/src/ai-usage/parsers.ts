@@ -1,7 +1,7 @@
 import { statSync } from "node:fs";
 import { basename } from "node:path";
 
-import type { AiUsageRecord } from "./types.js";
+import type { AiUsageDateFilter, AiUsageRecord } from "./types.js";
 import type { JsonObject } from "./utils.js";
 
 import {
@@ -337,6 +337,56 @@ export function parsePiUsageJsonl(path: string): readonly AiUsageRecord[] {
       return [];
     }
     return [record({ client: "pi", sessionId, messageId: stringAt(entry, "id"), model, provider: stringAt(message, "provider") ?? modelProviderFromModel(model, "pi"), timestamp: isoFromTimestamp(stringAt(entry, "timestamp"), fileTimestamp(path)) ?? DEFAULT_TIMESTAMP, workspacePath, sourcePath: path, tokens: tokens(integerAt(usage, "input"), integerAt(usage, "output"), integerAt(usage, "cacheRead"), integerAt(usage, "cacheWrite"), integerAt(usage, "reasoning")) })];
+  });
+}
+
+/**
+ * ZCode's store is the one client whose sqlite grows unboundedly (a busy
+ * month writes 100k+ `model_usage` rows), so this parser aggregates IN SQL —
+ * one row per (day, session, model, provider, workspace) with summed tokens
+ * and a `messages` count — instead of shipping every message through JSON.
+ * The group grain keeps sessionId, model, provider, and workspacePath exact
+ * (every downstream breakdown and the per-repo attribution key on them);
+ * only the message-level grain is lost, which no summary ever consumed.
+ * `messages` rides on each record as `recordCount` so `records` totals stay
+ * message-accurate, and the group's timestamp is its earliest message —
+ * day-level breakdowns bucket identically to the per-row version.
+ * `filter` (the report's since/until window) becomes a WHERE on
+ * `started_at`, so a period report never materializes history outside its
+ * window in the first place.
+ */
+export function parseZcodeUsageSqlite(path: string, filter: AiUsageDateFilter = {}): readonly AiUsageRecord[] {
+  const sinceMs = filter.since === undefined ? null : Date.parse(filter.since);
+  const untilMs = filter.until === undefined ? null : Date.parse(filter.until);
+  const windowClause = [
+    sinceMs === null || Number.isNaN(sinceMs) ? null : `m.started_at >= ${Math.trunc(sinceMs)}`,
+    untilMs === null || Number.isNaN(untilMs) ? null : `m.started_at <= ${Math.trunc(untilMs)}`,
+  ].filter((clause) => clause !== null);
+  const query = `SELECT date(m.started_at / 1000, 'unixepoch') AS day, m.session_id AS session_id, m.model_id AS model_id, m.provider_id AS provider_id, NULLIF(s.directory, '') AS directory, COUNT(*) AS messages, MIN(m.started_at) AS first_started_at, SUM(m.input_tokens) AS input_tokens, SUM(m.output_tokens) AS output_tokens, SUM(m.reasoning_tokens) AS reasoning_tokens, SUM(m.cache_creation_input_tokens) AS cache_creation_input_tokens, SUM(m.cache_read_input_tokens) AS cache_read_input_tokens FROM model_usage m LEFT JOIN session s ON s.id = m.session_id WHERE (m.input_tokens + m.output_tokens + m.reasoning_tokens + m.cache_creation_input_tokens + m.cache_read_input_tokens) > 0${windowClause.length > 0 ? ` AND ${windowClause.join(" AND ")}` : ""} GROUP BY day, m.session_id, m.model_id, m.provider_id, directory ORDER BY first_started_at`;
+  return sqliteJsonRows(path, query).map((row) => {
+    const cacheRead = integerAt(row, "cache_read_input_tokens") ?? 0;
+    const cacheWrite = integerAt(row, "cache_creation_input_tokens") ?? 0;
+    const day = stringAt(row, "day");
+    const sessionId = stringAt(row, "session_id") ?? "unknown";
+    const model = stringAt(row, "model_id") ?? "unknown";
+    return {
+      ...record({
+        client: "zcode",
+        sessionId,
+        // The id must be unique across the FULL group grain (provider and
+        // workspace included) — the shared dedupe keys on messageId, and a
+        // same-day/session/model pair under two providers would otherwise
+        // collapse and silently drop the smaller group's messages.
+        messageId: `zcode:${day ?? "unknown"}:${sessionId}:${model}:${stringAt(row, "provider_id") ?? "unknown"}:${stringAt(row, "directory") ?? ""}`,
+        model,
+        provider: stringAt(row, "provider_id") ?? "unknown",
+        timestamp: isoFromTimestamp(integerAt(row, "first_started_at"), fileTimestamp(path)) ?? DEFAULT_TIMESTAMP,
+        workspacePath: stringAt(row, "directory"),
+        sourcePath: path,
+        tokens: tokens((integerAt(row, "input_tokens") ?? 0) - cacheRead - cacheWrite, integerAt(row, "output_tokens"), cacheRead, cacheWrite, integerAt(row, "reasoning_tokens")),
+      }),
+      recordCount: integerAt(row, "messages") ?? 1,
+    };
   });
 }
 

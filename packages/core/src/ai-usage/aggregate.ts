@@ -30,7 +30,9 @@ function addTokens(left: AiTokenBreakdown, right: AiTokenBreakdown): AiTokenBrea
 function addRecord(summary: AiUsageSummary, record: AiUsageRecord): AiUsageSummary {
   const unsubsidizedCost = (summary.unsubsidizedCost ?? 0) + (record.unsubsidizedCost ?? 0);
   return {
-    records: summary.records + 1,
+    // Pre-aggregated records carry many messages in one row — count what
+    // they carry, not the row itself.
+    records: summary.records + (record.recordCount ?? 1),
     tokens: addTokens(summary.tokens, record.tokens),
     cost: summary.cost + (record.cost ?? 0),
     ...(unsubsidizedCost > 0 ? { unsubsidizedCost } : {}),
