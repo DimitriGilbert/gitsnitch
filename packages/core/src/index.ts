@@ -102,6 +102,7 @@ export {
   parseAmpUsageFile,
   parseClaudeUsageJsonl,
   parseCodexUsageJsonl,
+  parseDevinUsageSqlite,
   parseGeminiUsageFile,
   parseKiloUsageSqlite,
   parseOpenCodeUsageFile,

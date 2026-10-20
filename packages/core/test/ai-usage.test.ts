@@ -12,6 +12,7 @@ import {
   parseAmpUsageFile,
   parseClaudeUsageJsonl,
   parseCodexUsageJsonl,
+  parseDevinUsageSqlite,
   parseGeminiUsageFile,
   parseKiloUsageSqlite,
   parseOpenCodeUsageFile,
@@ -267,6 +268,71 @@ describe("AI usage parsers", () => {
     expect(filtered).toHaveLength(1);
     expect(filtered[0]?.recordCount).toBe(1);
     expect(filtered[0]?.tokens).toMatchObject({ input: 7, output: 1, total: 8 });
+  });
+
+  it("parses Devin sqlite usage with cumulative context mapped to input and workspace attribution", () => {
+    const repo = tempPath("repo");
+    const db = tempPath("devin.db");
+    createSqlite(db, `
+      CREATE TABLE sessions (id TEXT PRIMARY KEY, working_directory TEXT NOT NULL, model TEXT NOT NULL, created_at INTEGER NOT NULL, last_activity_at INTEGER NOT NULL);
+      CREATE TABLE message_nodes (row_id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, node_id INTEGER NOT NULL, chat_message TEXT NOT NULL, created_at INTEGER NOT NULL, metadata TEXT);
+      INSERT INTO sessions VALUES ('d1', '${repo.replaceAll("'", "''")}', 'swe-2-high', 1735689600, 1735689700);
+      INSERT INTO sessions VALUES ('d2', '/other/workspace', 'swe-2-mini', 1735862400, 1735862500);
+      INSERT INTO message_nodes (session_id, node_id, chat_message, created_at, metadata) VALUES
+        ('d1', 1, '{"role":"assistant"}', 1735689600, '{"num_tokens_preceding":21235}'),
+        ('d1', 2, '{"role":"assistant"}', 1735693200, '{"num_tokens_preceding":26423}'),
+        ('d1', 3, '{"role":"user"}', 1735693201, NULL),
+        ('d2', 1, '{"role":"assistant"}', 1735862400, '{"num_tokens_preceding":1000}');
+    `);
+
+    const records = parseDevinUsageSqlite(db);
+
+    expect(records).toHaveLength(2);
+    expect(records[0]?.client).toBe("devin");
+    expect(records[0]?.sessionId).toBe("d1");
+    expect(records[0]?.model).toBe("swe-2-high");
+    expect(records[0]?.provider).toBe("devin");
+    expect(records[0]?.workspacePath).toBe(repo);
+    expect(records[0]?.sourceAttribution).toBe("attributed");
+    expect(records[0]?.timestamp).toBe("2025-01-01T00:00:00.000Z");
+    expect(records[0]?.recordCount).toBe(2);
+    expect(records[0]?.tokens).toMatchObject({ input: 47658, output: 0, total: 47658 });
+    expect(records[1]?.sessionId).toBe("d2");
+    expect(records[1]?.tokens).toMatchObject({ input: 1000, total: 1000 });
+  });
+
+  it("skips devin rows without sessions or token metadata, normalizes blank models, and honors the date filter", () => {
+    const db = tempPath("devin-edge.db");
+    createSqlite(db, `
+      CREATE TABLE sessions (id TEXT PRIMARY KEY, working_directory TEXT NOT NULL, model TEXT NOT NULL, created_at INTEGER NOT NULL, last_activity_at INTEGER NOT NULL);
+      CREATE TABLE message_nodes (row_id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, node_id INTEGER NOT NULL, chat_message TEXT NOT NULL, created_at INTEGER NOT NULL, metadata TEXT);
+      INSERT INTO sessions VALUES ('d1', '', '', 1735689600, 1735689700);
+      INSERT INTO sessions VALUES ('d2', '/repo', 'swe-2-high', 1735862400, 1735862500);
+      INSERT INTO message_nodes (session_id, node_id, chat_message, created_at, metadata) VALUES
+        ('d1', 1, '{"role":"assistant"}', 1735689600, '{"num_tokens_preceding":42}'),
+        ('d1', 2, '{"role":"assistant"}', 1735689601, '{"other":1}'),
+        ('d1', 3, '{"role":"assistant"}', 1735689602, 'not-json{{{'),
+        ('d1', 4, '{"role":"assistant"}', 1735689603, '{"num_tokens_preceding":"lots"}'),
+        ('ghost', 1, '{"role":"assistant"}', 1735689604, '{"num_tokens_preceding":999}'),
+        ('d2', 1, '{"role":"assistant"}', 1735862400, '{"num_tokens_preceding":7}');
+    `);
+
+    const all = parseDevinUsageSqlite(db);
+
+    // The ghost message has no session row; the malformed-metadata row is
+    // dropped by json_valid; 'lots' counts as zero tokens.
+    expect(all).toHaveLength(2);
+    expect(all[0]?.sessionId).toBe("d1");
+    expect(all[0]?.model).toBe("unknown");
+    expect(all[0]?.workspacePath).toBeUndefined();
+    expect(all[0]?.sourceAttribution).toBe("unattributed");
+    expect(all[0]?.recordCount).toBe(2);
+    expect(all[0]?.tokens).toMatchObject({ input: 42, total: 42 });
+
+    const filtered = parseDevinUsageSqlite(db, { since: "2025-01-02T00:00:00.000Z" });
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.sessionId).toBe("d2");
+    expect(filtered[0]?.tokens).toMatchObject({ input: 7, total: 7 });
   });
 });
 

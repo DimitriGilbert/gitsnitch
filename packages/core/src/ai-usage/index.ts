@@ -12,9 +12,11 @@
  * Token conventions are normalized per client: Claude, OpenCode, Kilo, Amp, and
  * Pi report cache tokens outside of input, so their buckets are stored as
  * reported, while ZCode and Gemini report input inclusive of cached tokens, so
- * their parsers store input as the fresh (non-cached) portion. Across all
- * clients a record's total is the sum of its buckets and never double-counts
- * cached input.
+ * their parsers store input as the fresh (non-cached) portion. Devin's store
+ * has no input/output split at all — its input bucket is the summed cumulative
+ * context (num_tokens_preceding) of each assistant message. Across all clients
+ * a record's total is the sum of its buckets and never double-counts cached
+ * input.
  */
 export type {
   AiModelPricing,
@@ -59,6 +61,7 @@ export {
   parseAmpUsageFile,
   parseClaudeUsageJsonl,
   parseCodexUsageJsonl,
+  parseDevinUsageSqlite,
   parseGeminiUsageFile,
   parseKiloUsageSqlite,
   parseOpenCodeUsageFile,

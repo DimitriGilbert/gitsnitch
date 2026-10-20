@@ -390,6 +390,53 @@ export function parseZcodeUsageSqlite(path: string, filter: AiUsageDateFilter = 
   });
 }
 
+/**
+ * Devin CLI keeps its history in `sessions.db` (under `devin/cli` in the XDG
+ * data dir): a `sessions` table keyed by id carrying `model` and
+ * `working_directory`, and a `message_nodes` table whose assistant rows hold
+ * `metadata.num_tokens_preceding` — the CUMULATIVE context size at that point
+ * in the session. The store has no per-call input/output split, so the summed
+ * preceding-context is mapped onto `input` as the closest approximation of
+ * tokens the model read (documented here because it is not a literal input
+ * count). Like zcode this parser aggregates IN SQL — the db grows to millions
+ * of message_nodes rows — emitting one record per (day, session, model,
+ * workspace), and it pushes the report's since/until window into a WHERE on
+ * `created_at`, which is unix SECONDS (zcode's is milliseconds). Sessions
+ * without usage-bearing messages and message nodes without a session row
+ * contribute nothing, matching the ported devin aggregation.
+ */
+export function parseDevinUsageSqlite(path: string, filter: AiUsageDateFilter = {}): readonly AiUsageRecord[] {
+  const sinceSeconds = filter.since === undefined ? null : Date.parse(filter.since) / 1000;
+  const untilSeconds = filter.until === undefined ? null : Date.parse(filter.until) / 1000;
+  const windowClause = [
+    sinceSeconds === null || Number.isNaN(sinceSeconds) ? null : `m.created_at >= ${Math.trunc(sinceSeconds)}`,
+    untilSeconds === null || Number.isNaN(untilSeconds) ? null : `m.created_at <= ${Math.trunc(untilSeconds)}`,
+  ].filter((clause) => clause !== null);
+  const query = `SELECT date(m.created_at, 'unixepoch') AS day, m.session_id AS session_id, NULLIF(s.model, '') AS model, NULLIF(s.working_directory, '') AS directory, COUNT(*) AS messages, MIN(m.created_at) AS first_created_at, SUM(CAST(json_extract(m.metadata, '$.num_tokens_preceding') AS INTEGER)) AS context_tokens FROM message_nodes m JOIN sessions s ON s.id = m.session_id WHERE json_valid(m.metadata) AND json_extract(m.metadata, '$.num_tokens_preceding') IS NOT NULL${windowClause.length > 0 ? ` AND ${windowClause.join(" AND ")}` : ""} GROUP BY day, m.session_id, s.model, directory ORDER BY first_created_at`;
+  return sqliteJsonRows(path, query).map((row) => {
+    const day = stringAt(row, "day");
+    const sessionId = stringAt(row, "session_id") ?? "unknown";
+    const model = stringAt(row, "model") ?? "unknown";
+    return {
+      ...record({
+        client: "devin",
+        sessionId,
+        // The id must be unique across the FULL group grain — the shared
+        // dedupe keys on messageId, and same-day/session groups under two
+        // models or workspaces would otherwise collapse.
+        messageId: `devin:${day ?? "unknown"}:${sessionId}:${model}:${stringAt(row, "directory") ?? ""}`,
+        model,
+        provider: modelProviderFromModel(model, "devin"),
+        timestamp: isoFromTimestamp(integerAt(row, "first_created_at"), fileTimestamp(path)) ?? DEFAULT_TIMESTAMP,
+        workspacePath: stringAt(row, "directory"),
+        sourcePath: path,
+        tokens: tokens(integerAt(row, "context_tokens"), undefined, undefined, undefined, undefined),
+      }),
+      recordCount: integerAt(row, "messages") ?? 1,
+    };
+  });
+}
+
 export const AI_USAGE_SOURCE_NOTE = "Inspired by tokscale's local-session parsing approach. MIT reference: https://github.com/junhoyeo/tokscale. This module reimplements git-snitch-specific parsing rather than vendoring tokscale code.";
 
 export function dedupeAiUsageRecords(records: readonly AiUsageRecord[]): readonly AiUsageRecord[] {

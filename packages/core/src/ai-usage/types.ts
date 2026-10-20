@@ -1,8 +1,8 @@
 import type { IsoDateString } from "../json.js";
 
-export type AiClientId = "opencode" | "claude" | "codex" | "gemini" | "amp" | "kilo" | "pi" | "zcode";
+export type AiClientId = "opencode" | "claude" | "codex" | "gemini" | "amp" | "kilo" | "pi" | "zcode" | "devin";
 
-export const AI_USAGE_CLIENTS = ["opencode", "claude", "codex", "gemini", "amp", "kilo", "pi", "zcode"] as const satisfies readonly AiClientId[];
+export const AI_USAGE_CLIENTS = ["opencode", "claude", "codex", "gemini", "amp", "kilo", "pi", "zcode", "devin"] as const satisfies readonly AiClientId[];
 
 export interface AiTokenBreakdown {
   readonly input: number;

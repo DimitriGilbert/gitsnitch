@@ -63,7 +63,7 @@ Both commands share these flags:
 | `--all-branches` | Include all local and remote refs |
 | `--ai-usage` | Include local AI assistant token/cost data |
 
-`--ai-usage` reads local token data from the stores of [OpenCode](https://opencode.ai), Claude Code, Codex, Gemini CLI, Amp, Kilo, Pi, and ZCode under your home directory. Usage that cannot be tied to a workspace path is excluded from per-repo summaries.
+`--ai-usage` reads local token data from the stores of [OpenCode](https://opencode.ai), Claude Code, Codex, Gemini CLI, Amp, Kilo, Pi, ZCode, and Devin under your home directory. Usage that cannot be tied to a workspace path is excluded from per-repo summaries.
 
 ### `scan` only
 

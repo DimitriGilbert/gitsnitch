@@ -47,7 +47,7 @@ Default repoPath is `.`.
 | `--ai-usage` | Include local AI assistant token/cost data |
 | `--verbose` | Print progress to stderr |
 
-`--ai-usage` reads local token data from the stores of [OpenCode](https://opencode.ai), Claude Code, Codex, Gemini CLI, Amp, Kilo, Pi, and ZCode under your home directory. Usage that cannot be tied to a workspace path is excluded from per-repo summaries.
+`--ai-usage` reads local token data from the stores of [OpenCode](https://opencode.ai), Claude Code, Codex, Gemini CLI, Amp, Kilo, Pi, ZCode, and Devin under your home directory. Usage that cannot be tied to a workspace path is excluded from per-repo summaries.
 
 ### `git-snitch scan`
 

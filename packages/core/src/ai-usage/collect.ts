@@ -11,6 +11,7 @@ import {
   parseAmpUsageFile,
   parseClaudeUsageJsonl,
   parseCodexUsageJsonl,
+  parseDevinUsageSqlite,
   parseGeminiUsageFile,
   parseKiloUsageSqlite,
   parseOpenCodeUsageFile,
@@ -84,6 +85,12 @@ function rootsForClient(client: AiClientId, overrides: AiUsageStoreRoots | undef
       return [join(home, ".pi")];
     case "zcode":
       return [join(home, ".zcode", "cli", "db")];
+    case "devin": {
+      // Devin CLI honors XDG_DATA_HOME for its sessions.db location.
+      const xdgDataHome = process.env.XDG_DATA_HOME;
+      const dataHome = xdgDataHome !== undefined && xdgDataHome.trim().length > 0 ? xdgDataHome : join(home, ".local", "share");
+      return [join(dataHome, "devin", "cli")];
+    }
   }
 }
 
@@ -147,6 +154,8 @@ function parseClientFile(client: AiClientId, path: string, dateFilter?: AiUsageD
         return path.endsWith(".jsonl") ? parsePiUsageJsonl(path) : [];
       case "zcode":
         return hasSqliteExtension(path) ? parseZcodeUsageSqlite(path, dateFilter) : [];
+      case "devin":
+        return hasSqliteExtension(path) ? parseDevinUsageSqlite(path, dateFilter) : [];
     }
   } catch (error) {
     throw new AiUsageCollectionError(`Unable to parse AI usage store file ${path}: ${formatError(error)}`);
