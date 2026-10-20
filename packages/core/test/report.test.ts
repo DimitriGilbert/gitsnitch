@@ -121,6 +121,31 @@ describe("public report generation API", () => {
     ).rejects.toThrow("explicit branches or allBranches");
   });
 
+  it("excludes commits from matching authors in the generated report", async () => {
+    const repoPath = await createBranchingRepo("repo-exclude-author-");
+    await writeFile(join(repoPath, "bot.txt"), "bot output\n");
+    await gitWithEnv(
+      repoPath,
+      ["add", "bot.txt"],
+      "2024-01-02T03:04:05+00:00",
+      { GIT_AUTHOR_NAME: "Deploy Bot", GIT_AUTHOR_EMAIL: "deploy-bot@example.test" },
+    );
+    await gitWithEnv(
+      repoPath,
+      ["commit", "-m", "chore: bot housekeeping"],
+      "2024-01-02T03:04:05+00:00",
+      { GIT_AUTHOR_NAME: "Deploy Bot", GIT_AUTHOR_EMAIL: "deploy-bot@example.test" },
+    );
+
+    const report = await generateRepoReport(
+      { repoPath, branches: [], allBranches: false, overwrite: true, open: false, format: "json", excludeAuthors: ["deploy-bot"] },
+      { generatedAt },
+    );
+
+    expect(report.commits.map((commit) => commit.message)).toEqual(["feat: initial main commit"]);
+    expect(report.repository).toMatchObject({ totalCommits: 1, totalContributors: 1 });
+  });
+
   it("generates scan reports using period parsing, maxDepth, default excludes, and user excludes", async () => {
     const workspace = await createTempDirectory("scan-report-");
     const service = join(workspace, "apps", "service");
@@ -251,7 +276,7 @@ async function git(cwd: string, ...args: readonly string[]): Promise<string> {
   return gitWithEnv(cwd, args, "2024-01-02T03:04:05+00:00");
 }
 
-async function gitWithEnv(cwd: string, args: readonly string[], date: string): Promise<string> {
+async function gitWithEnv(cwd: string, args: readonly string[], date: string, envOverrides: Readonly<Record<string, string>> = {}): Promise<string> {
   const result = await execFileAsync("git", [...args], {
     cwd,
     encoding: "utf8",
@@ -263,6 +288,7 @@ async function gitWithEnv(cwd: string, args: readonly string[], date: string): P
       GIT_COMMITTER_NAME: "Ada Lovelace",
       GIT_COMMITTER_EMAIL: "ada@example.test",
       GIT_COMMITTER_DATE: date,
+      ...envOverrides,
     },
   });
   return result.stdout;

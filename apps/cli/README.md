@@ -51,6 +51,8 @@ Both commands share these flags:
 | `--no-overwrite` | Abort if the output file already exists (default: overwrite) |
 | `--since <iso>` | Only commits after this date (`2025-01-01T00:00:00Z`) |
 | `--until <iso>` | Only commits before this date |
+| `--exclude-author <text>` | Exclude commits whose author name/email contains this text (repeatable) |
+| `--exclude-committer <text>` | Exclude commits whose committer name/email contains this text (repeatable) |
 | `--verbose` | Print progress to stderr |
 
 ### `repo` only
@@ -60,6 +62,8 @@ Both commands share these flags:
 | `--branch <ref>` | Include this branch (repeat for multiple) |
 | `--all-branches` | Include all local and remote refs |
 | `--ai-usage` | Include local AI assistant token/cost data |
+
+`--ai-usage` reads local token data from the stores of [OpenCode](https://opencode.ai), Claude Code, Codex, Gemini CLI, Amp, Kilo, Pi, and ZCode under your home directory. Usage that cannot be tied to a workspace path is excluded from per-repo summaries.
 
 ### `scan` only
 
@@ -120,7 +124,8 @@ Create `.git-snitch/config.json` in your repo or scan directory. CLI flags overr
   "repo": {
     "branches": ["main", "develop"],
     "since": "2025-01-01T00:00:00Z",
-    "until": "2025-12-31T23:59:59Z"
+    "until": "2025-12-31T23:59:59Z",
+    "excludeAuthors": ["deploy-bot"]
   },
   "scan": {
     "maxDepth": 3,

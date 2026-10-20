@@ -43,6 +43,8 @@ export interface ReportOptions {
   readonly anon?: AnonOptions;
   readonly noGitHub?: boolean;
   readonly aiUsage?: boolean;
+  readonly excludeAuthors?: readonly string[];
+  readonly excludeCommitters?: readonly string[];
 }
 
 export interface ScanOptions {
@@ -105,6 +107,8 @@ const reportOptionsSchema = z.object({
   anon: anonOptionsSchema.optional(),
   noGitHub: z.boolean().optional(),
   aiUsage: z.boolean().optional(),
+  excludeAuthors: patternListSchema.optional(),
+  excludeCommitters: patternListSchema.optional(),
 });
 
 export const scanPeriodOptionsSchema = z.object({

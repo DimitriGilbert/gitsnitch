@@ -69,6 +69,45 @@ describe("git log operations", () => {
     expect(buildGitLogArgs({ allBranches: true, branches: ["main"] })).not.toContain("main");
   });
 
+  it("adds git-side author and committer exclusion filters", () => {
+    const args = buildGitLogArgs({
+      branches: ["main"],
+      excludeAuthors: ["deploy-bot", "ci@example.test"],
+      excludeCommitters: ["rebase-bot"],
+    });
+
+    expect(args).toContain("--perl-regexp");
+    expect(args).toContain("--author=^(?!.*(?:deploy-bot|ci@example\\.test))");
+    expect(args).toContain("--committer=^(?!.*(?:rebase-bot))");
+  });
+
+  it("omits exclusion filters when no usable patterns are given", () => {
+    const args = buildGitLogArgs({ branches: ["main"], excludeAuthors: [], excludeCommitters: ["   "] });
+
+    expect(args).not.toContain("--perl-regexp");
+    expect(args.some((arg) => arg.startsWith("--author=") || arg.startsWith("--committer="))).toBe(false);
+  });
+
+  it("excludes commits by author and committer patterns", async () => {
+    const repoPath = await createTempDirectory("exclude-authors-");
+    await git(repoPath, "init", "--initial-branch=main");
+    await writeFile(join(repoPath, "index.ts"), "export const value = 1;\n");
+    await commitAs(repoPath, "Ada Lovelace", "ada@example.test", "Ada Lovelace", "ada@example.test", ["index.ts"], "feat: human commit");
+    await writeFile(join(repoPath, "bot.ts"), "export const bot = 1;\n");
+    await commitAs(repoPath, "Deploy Bot", "deploy-bot@example.test", "Ada Lovelace", "ada@example.test", ["bot.ts"], "chore: bot authored");
+    await writeFile(join(repoPath, "rebased.ts"), "export const rebased = 1;\n");
+    await commitAs(repoPath, "Ada Lovelace", "ada@example.test", "Rebase Bot", "rebase-bot@example.test", ["rebased.ts"], "feat: bot committed");
+
+    const commits = await getGitCommits({
+      repoPath,
+      runner: createGitCommandRunner(),
+      excludeAuthors: ["deploy-bot"],
+      excludeCommitters: ["rebase-bot"],
+    });
+
+    expect(commits.map((commit) => commit.message)).toEqual(["feat: human commit"]);
+  });
+
   it("defaults to the current branch when no branch option is supplied", async () => {
     const calls: string[][] = [];
     const runner: AsyncCommandRunner = async (_command, args) => {
@@ -208,6 +247,31 @@ async function createCommittedRepo(prefix: string): Promise<string> {
 
 async function git(cwd: string, ...args: readonly string[]): Promise<string> {
   return gitWithEnv(cwd, args);
+}
+
+async function commitAs(
+  cwd: string,
+  authorName: string,
+  authorEmail: string,
+  committerName: string,
+  committerEmail: string,
+  files: readonly string[],
+  message: string,
+): Promise<void> {
+  await execFileAsync("git", ["add", ...files], { cwd, encoding: "utf8" });
+  await execFileAsync("git", ["commit", "-m", message], {
+    cwd,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: authorName,
+      GIT_AUTHOR_EMAIL: authorEmail,
+      GIT_AUTHOR_DATE: "2024-01-02T03:04:05+00:00",
+      GIT_COMMITTER_NAME: committerName,
+      GIT_COMMITTER_EMAIL: committerEmail,
+      GIT_COMMITTER_DATE: "2024-01-02T03:04:05+00:00",
+    },
+  });
 }
 
 async function gitWithEnv(cwd: string, args: readonly string[]): Promise<string> {

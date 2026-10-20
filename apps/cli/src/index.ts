@@ -70,6 +70,8 @@ interface SharedCommandOptions {
   readonly github?: boolean;
   readonly aiUsage?: boolean;
   readonly verbose?: boolean;
+  readonly excludeAuthor?: readonly string[];
+  readonly excludeCommitter?: readonly string[];
 }
 
 interface RepoCommandOptions extends SharedCommandOptions {
@@ -112,6 +114,8 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--until <iso>", "Only include commits until an ISO 8601 UTC date")
     .option("--branch <ref>", "Branch or ref to include", collectValues, [])
     .option("--all-branches", "Include local and remote refs")
+    .option("--exclude-author <pattern>", "Exclude commits whose author name or email contains this text (repeatable)", collectValues, [])
+    .option("--exclude-committer <pattern>", "Exclude commits whose committer name or email contains this text (repeatable)", collectValues, [])
     .option("--anon", "Enable full anonymization (shorthand for all --hide-* flags)")
     .option("--hide-names", "Replace author/contributor names with pseudonyms")
     .option("--hide-emails", "Replace emails with pseudonyms")
@@ -146,6 +150,8 @@ export function createProgram(dependencies: CliDependencies = {}): Command {
     .option("--period <duration>", "Scan period such as 7d, 4w, 3m, or 1y")
     .option("--max-depth <number>", "Maximum recursive discovery depth", parseNonNegativeInteger)
     .option("--exclude <pattern>", "Additional directory glob to exclude", collectValues, [])
+    .option("--exclude-author <pattern>", "Exclude commits whose author name or email contains this text (repeatable)", collectValues, [])
+    .option("--exclude-committer <pattern>", "Exclude commits whose committer name or email contains this text (repeatable)", collectValues, [])
     .option("--anon", "Enable full anonymization (shorthand for all --hide-* flags)")
     .option("--hide-names", "Replace author/contributor names with pseudonyms")
     .option("--hide-emails", "Replace emails with pseudonyms")
@@ -225,6 +231,8 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
   if (allBranches && branches.length > 0) {
     throw new Error("Invalid branch options: use either --branch or --all-branches, not both.");
   }
+  const excludeAuthors = options.excludeAuthor ?? config.repo.excludeAuthors ?? [];
+  const excludeCommitters = options.excludeCommitter ?? config.repo.excludeCommitters ?? [];
 
   const reportOptions: RepoReportOptions = {
     outputPath: options.output ?? config.report.outputPath,
@@ -240,6 +248,8 @@ async function runRepoCommand(repoPath: string, options: RepoCommandOptions, dep
     branches,
     allBranches,
     ...(options.aiUsage === true ? { aiUsage: true } : {}),
+    ...(excludeAuthors.length > 0 ? { excludeAuthors } : {}),
+    ...(excludeCommitters.length > 0 ? { excludeCommitters } : {}),
   };
 
   const report = await generateRepoReport(reportOptions, {
@@ -313,6 +323,8 @@ async function runScanCommand(directory: string, options: ScanCommandOptions, de
     anon: config.anon,
     noGitHub: config.noGitHub,
     ...(options.aiUsage === true ? { aiUsage: true } : {}),
+    ...(options.excludeAuthor?.length ? { excludeAuthors: options.excludeAuthor } : {}),
+    ...(options.excludeCommitter?.length ? { excludeCommitters: options.excludeCommitter } : {}),
   }, {
     noGitHub: config.noGitHub,
     aiUsageStoreRoots: dependencies.aiUsageStoreRoots,
@@ -599,11 +611,17 @@ function normalizeOverwriteOption<Options extends SharedCommandOptions>(options:
 
 function normalizeRepoCommandOptions(options: RepoCommandOptions, command: Command): RepoCommandOptions {
   const normalized = normalizeOverwriteOption(options, command);
-  if (command.getOptionValueSource("branch") === "cli") {
+  const fromCli = (name: string) => command.getOptionValueSource(name) === "cli";
+  if (fromCli("branch") && fromCli("excludeAuthor") && fromCli("excludeCommitter")) {
     return normalized;
   }
 
-  return { ...normalized, branch: undefined };
+  return {
+    ...normalized,
+    ...(fromCli("branch") ? {} : { branch: undefined }),
+    ...(fromCli("excludeAuthor") ? {} : { excludeAuthor: undefined }),
+    ...(fromCli("excludeCommitter") ? {} : { excludeCommitter: undefined }),
+  };
 }
 
 async function openFile(filePath: string): Promise<void> {

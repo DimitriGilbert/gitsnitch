@@ -405,6 +405,8 @@ async function getClassifiedCommits(options: RepoReportOptions, runner: AsyncCom
     until: options.until,
     branches: options.branches,
     allBranches: options.allBranches,
+    excludeAuthors: options.excludeAuthors,
+    excludeCommitters: options.excludeCommitters,
   });
 
   return commits.map((commit) => ({ ...commit, classification: classifyCommit(commit.message) }));
@@ -502,6 +504,8 @@ function repoOptionsFromScanOptions(options: ScanReportOptions, repoPath: string
     until: options.until,
     templatePath: options.templatePath,
     ...(options.aiUsage === undefined ? {} : { aiUsage: options.aiUsage }),
+    ...(options.excludeAuthors === undefined ? {} : { excludeAuthors: options.excludeAuthors }),
+    ...(options.excludeCommitters === undefined ? {} : { excludeCommitters: options.excludeCommitters }),
     repoPath,
     branches: [],
     allBranches: false,

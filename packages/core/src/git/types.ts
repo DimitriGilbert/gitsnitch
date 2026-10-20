@@ -25,6 +25,8 @@ export interface GitLogOptions {
   readonly until?: string;
   readonly branches?: readonly string[];
   readonly allBranches?: boolean;
+  readonly excludeAuthors?: readonly string[];
+  readonly excludeCommitters?: readonly string[];
 }
 
 export interface RepositoryInfoOptions {

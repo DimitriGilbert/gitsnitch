@@ -147,6 +147,33 @@ describe("cli package entrypoint", () => {
     expect(getRecordArray(overrideReport, "commits").map((commit) => getString(commit, "message"))).toEqual(["main schema commit"]);
   }, 120_000);
 
+  it("excludes bot commits via --exclude-author while keeping other commits", async () => {
+    const workspace = await createTempDirectory();
+    const repoPath = await createFixtureRepo(workspace, "exclude-author-repo", "human commit");
+    await writeFile(join(repoPath, "bot.txt"), "bot output\n", "utf8");
+    await git(repoPath, ["add", "bot.txt"]);
+    await git(repoPath, ["commit", "-m", "bot housekeeping commit"], {
+      GIT_AUTHOR_DATE: "2024-01-03T03:04:05Z",
+      GIT_COMMITTER_DATE: "2024-01-03T03:04:05Z",
+      GIT_AUTHOR_NAME: "Deploy Bot",
+      GIT_AUTHOR_EMAIL: "deploy-bot@example.test",
+    });
+
+    const filteredOutput = createBufferedOutput();
+    const filteredCode = await runCli(["repo", repoPath, "--json", "--exclude-author", "Deploy Bot"], { io: filteredOutput.io });
+
+    expect(filteredCode, filteredOutput.stderr()).toBe(0);
+    const filteredReport = parseRecord(filteredOutput.stdout());
+    expect(getRecord(filteredReport, "options").excludeAuthors).toEqual(["Deploy Bot"]);
+    expect(getRecordArray(filteredReport, "commits").map((commit) => getString(commit, "message"))).toEqual(["human commit"]);
+
+    const fullOutput = createBufferedOutput();
+    const fullCode = await runCli(["repo", repoPath, "--json"], { io: fullOutput.io });
+
+    expect(fullCode, fullOutput.stderr()).toBe(0);
+    expect(getRecordArray(parseRecord(fullOutput.stdout()), "commits")).toHaveLength(2);
+  }, 120_000);
+
   it("writes repo HTML with navigation, charts, tables, exports, theme controls, custom fallback code, and safe injected data", async () => {
     const workspace = await createTempDirectory();
     const unsafeMessage = "unsafe </script><img src=x onerror=alert(1)> & \u2028 \u2029 content";
@@ -758,7 +785,7 @@ async function writeGitSnitchConfig(baseDirectory: string, config: TestConfig): 
 async function git(cwd: string, args: readonly string[], env: NodeJS.ProcessEnv = {}): Promise<void> {
   await execFileAsync("git", [...args], {
     cwd,
-    env: { ...process.env, ...env, GIT_AUTHOR_NAME: "Fixture Author", GIT_AUTHOR_EMAIL: "fixture@example.test" },
+    env: { ...process.env, GIT_AUTHOR_NAME: "Fixture Author", GIT_AUTHOR_EMAIL: "fixture@example.test", ...env },
   });
 }
 

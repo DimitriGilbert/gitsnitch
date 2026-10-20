@@ -23,6 +23,18 @@ export interface GitLogCommandOptions {
   readonly until?: string;
   readonly branches?: readonly string[];
   readonly allBranches?: boolean;
+  readonly excludeAuthors?: readonly string[];
+  readonly excludeCommitters?: readonly string[];
+}
+
+const REGEX_SPECIAL_CHARACTERS = /[.*+?^${}()|[\]\\]/gu;
+
+function buildExclusionRegex(patterns: readonly string[]): string {
+  const escaped = patterns
+    .map((pattern) => pattern.trim())
+    .filter((pattern) => pattern.length > 0)
+    .map((pattern) => pattern.replace(REGEX_SPECIAL_CHARACTERS, "\\$&"));
+  return escaped.length === 0 ? "" : `^(?!.*(?:${escaped.join("|")}))`;
 }
 
 export function buildGitLogArgs(options: GitLogCommandOptions = {}): readonly string[] {
@@ -45,6 +57,18 @@ export function buildGitLogArgs(options: GitLogCommandOptions = {}): readonly st
     args.push(...options.branches);
   }
 
+  const authorExclusion = options.excludeAuthors === undefined ? "" : buildExclusionRegex(options.excludeAuthors);
+  const committerExclusion = options.excludeCommitters === undefined ? "" : buildExclusionRegex(options.excludeCommitters);
+  if (authorExclusion.length > 0 || committerExclusion.length > 0) {
+    args.push("--perl-regexp");
+  }
+  if (authorExclusion.length > 0) {
+    args.push(`--author=${authorExclusion}`);
+  }
+  if (committerExclusion.length > 0) {
+    args.push(`--committer=${committerExclusion}`);
+  }
+
   return args;
 }
 
@@ -55,6 +79,8 @@ export async function getGitCommits(options: GitLogOptions): Promise<readonly Co
     until: options.until,
     branches,
     allBranches: options.allBranches,
+    excludeAuthors: options.excludeAuthors,
+    excludeCommitters: options.excludeCommitters,
   });
 
   try {
