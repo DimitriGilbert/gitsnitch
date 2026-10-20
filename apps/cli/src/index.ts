@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { mkdir, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -23,13 +24,32 @@ import { runWorklogCommand } from "./worklog-command.js";
 export interface PackageMetadata {
   readonly name: "@git-snitch/cli";
   readonly role: "cli";
-  readonly version: "0.0.0";
+  readonly version: string;
+}
+
+/**
+ * Reads the CLI's own package.json for the published version. The file sits
+ * one level above both src/index.ts and the built dist/index.js, and it
+ * cannot be imported statically because it lives outside the build rootDir.
+ * A missing or malformed file degrades to "0.0.0" rather than breaking
+ * `--version` outright.
+ */
+function readCliPackageVersion(): string {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    if (typeof parsed === "object" && parsed !== null && "version" in parsed && typeof parsed.version === "string" && parsed.version.length > 0) {
+      return parsed.version;
+    }
+  } catch {
+    // fall through to the placeholder version below
+  }
+  return "0.0.0";
 }
 
 export const cliPackageMetadata = {
   name: "@git-snitch/cli",
   role: "cli",
-  version: "0.0.0",
+  version: readCliPackageVersion(),
 } satisfies PackageMetadata;
 
 export interface CliIo {

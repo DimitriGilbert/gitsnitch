@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 
 import { describe, expect, it, vi } from "vitest";
 
+import packageJson from "../package.json";
 import { cliPackageMetadata, rewriteWorklogAliases, runCli } from "../src/index";
 
 vi.mock("@git-snitch/core", async (importOriginal) => {
@@ -28,7 +29,7 @@ describe("cli package entrypoint", () => {
     expect(cliPackageMetadata).toEqual({
       name: "@git-snitch/cli",
       role: "cli",
-      version: "0.0.0",
+      version: packageJson.version,
     });
   });
 
@@ -43,7 +44,7 @@ describe("cli package entrypoint", () => {
     const versionOutput = createBufferedOutput();
     const versionCode = await runCli(["--version"], { io: versionOutput.io });
     expect(versionCode).toBe(0);
-    expect(versionOutput.stdout()).toContain("0.0.0");
+    expect(versionOutput.stdout()).toContain(packageJson.version);
   });
 
   it("emits repo JSON with the same report data shape used by HTML", async () => {
