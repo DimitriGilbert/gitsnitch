@@ -144,7 +144,7 @@ describe("AI usage parsers", () => {
 
     expect(records).toHaveLength(1);
     expect(records[0]?.sourceAttribution).toBe("project-hash-only");
-    expect(records[0]?.tokens.total).toBe(35);
+    expect(records[0]?.tokens).toMatchObject({ input: 17, cacheRead: 3, total: 32 });
   });
 
   it("parses Amp thread usageLedger records", () => {

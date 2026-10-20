@@ -228,6 +228,8 @@ function geminiRecord(value: JsonObject, path: string, sessionId: string, projec
     return undefined;
   }
   const timestamp = isoFromTimestamp(stringAt(value, "timestamp") ?? stringAt(value, "startTime"), fileTimestamp(path)) ?? DEFAULT_TIMESTAMP;
+  const cacheRead = integerAt(tokenObject, "cached") ?? integerAt(tokenObject, "cacheRead");
+  const freshInput = (integerAt(tokenObject, "input") ?? integerAt(tokenObject, "inputTokens") ?? 0) - (cacheRead ?? 0);
   return record({
     client: "gemini",
     sessionId,
@@ -237,7 +239,7 @@ function geminiRecord(value: JsonObject, path: string, sessionId: string, projec
     timestamp,
     projectHash,
     sourcePath: path,
-    tokens: tokens(integerAt(tokenObject, "input") ?? integerAt(tokenObject, "inputTokens"), integerAt(tokenObject, "output") ?? integerAt(tokenObject, "outputTokens"), integerAt(tokenObject, "cached") ?? integerAt(tokenObject, "cacheRead"), integerAt(tokenObject, "cacheWrite"), integerAt(tokenObject, "thoughts") ?? integerAt(tokenObject, "reasoning")),
+    tokens: tokens(freshInput, integerAt(tokenObject, "output") ?? integerAt(tokenObject, "outputTokens"), cacheRead, integerAt(tokenObject, "cacheWrite"), integerAt(tokenObject, "thoughts") ?? integerAt(tokenObject, "reasoning")),
   });
 }
 
