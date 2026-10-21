@@ -352,6 +352,20 @@ describe("AI usage aggregation", () => {
     expect(estimateAiUsageRecordCost(record)).toBeCloseTo(2.99, 6);
   });
 
+  it("estimates devin swe costs via fallback proxy pricing", () => {
+    const record: AiUsageRecord = {
+      client: "devin",
+      sessionId: "session",
+      model: "swe-2-high",
+      provider: "devin",
+      timestamp: "2025-01-01T00:00:00.000Z",
+      sourceAttribution: "unattributed",
+      tokens: { input: 2_000_000, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: 0, total: 2_000_000 },
+    };
+
+    expect(estimateAiUsageRecordCost(record)).toBeCloseTo(5, 6);
+  });
+
   it("estimates GPT costs with cached input pricing", () => {
     const record: AiUsageRecord = {
       client: "codex",

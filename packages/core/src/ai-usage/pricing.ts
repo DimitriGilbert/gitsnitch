@@ -30,7 +30,13 @@ interface AiModelPricingIndex {
   readonly byModel: ReadonlyMap<string, readonly AiModelPricingCandidate[]>;
 }
 
+// Cognition's SWE models carry no public per-token price (Devin bills per
+// ACU, and neither models.dev nor OpenRouter lists them), so these entries
+// proxy frontier (swe-2) and mini (lightning) tiers rather than literal rates.
 const FALLBACK_MODEL_PRICES: readonly AiModelPricingCandidate[] = [
+  fallbackPrice("devin", "swe-2-high", "SWE-2 High", { input: 2.5, cacheRead: 0.25, output: 15 }),
+  fallbackPrice("devin", "swe-2", "SWE-2", { input: 2.5, cacheRead: 0.25, output: 15 }),
+  fallbackPrice("devin", "swe-1-7-lightning-medium", "SWE-1.7 Lightning Medium", { input: 0.75, cacheRead: 0.075, output: 4.5 }),
   fallbackPrice("openai", "gpt-5.5", "GPT-5.5", { input: 5, cacheRead: 0.5, output: 30 }),
   fallbackPrice("openai", "gpt-5.4", "GPT-5.4", { input: 2.5, cacheRead: 0.25, output: 15 }),
   fallbackPrice("openai", "gpt-5.4-mini", "GPT-5.4 mini", { input: 0.75, cacheRead: 0.075, output: 4.5 }),
